@@ -19,7 +19,7 @@ export interface FrameSize {
 }
 
 export type SelShape =
-  | { kind: 'region'; level: 'country' | 'province'; id: string }
+  | { kind: 'region'; level: 'country' | 'province'; id: string; /** Country (ADM0_A3) a province belongs to. */ country?: string }
   | { kind: 'rect'; a: LonLat; b: LonLat }
   | { kind: 'circle'; center: LonLat; radiusM: number }
   | { kind: 'lasso'; points: LonLat[] };

@@ -57,6 +57,16 @@ input[type=range] { accent-color: var(--sel); }
 .pill { border: 1px solid var(--line); background: none; color: var(--dim); font-size: 11px; padding: 3px 8px; border-radius: 999px; cursor: pointer; }
 .pill:hover { color: var(--txt); }
 .pill.on { background: var(--sel); border-color: var(--sel); color: var(--selTxt); }
+.seg { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.seg button { background: none; border: 0; color: var(--dim); font-size: 11px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button:hover { color: var(--txt); }
+.seg button.on { background: var(--sel); color: var(--selTxt); }
+.grp h4 { margin: 0 0 7px; font-size: 11px; color: var(--dim); font-weight: 500; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-size: 11px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; text-align: right; font-family: var(--mono); }
+.empty-note { color: var(--dim); font-size: 11px; line-height: 1.5; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

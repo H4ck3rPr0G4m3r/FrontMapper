@@ -1,0 +1,52 @@
+.earth { position: fixed; inset: 0; display: grid; grid-template-rows: 44px minmax(0, 1fr); background: var(--app); }
+.earth-top { display: flex; align-items: center; gap: 10px; padding: 0 10px; border-bottom: 1px solid var(--line); background: var(--panel); min-width: 0; }
+.earth-top .seg button { display: flex; align-items: center; gap: 5px; padding: 5px 9px; }
+.earth-top .seg i { font-size: 14px; }
+.earth-hint { color: var(--dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search { position: relative; width: 300px; max-width: 34vw; }
+.search > i { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--dim); }
+.search input { width: 100%; padding: 6px 8px 6px 28px; }
+.search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 1000; margin: 0; padding: 4px; list-style: none; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+.search-results li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: var(--r); cursor: pointer; }
+.search-results li.hl, .search-results li:hover { background: var(--btn); }
+.search-results small { color: var(--dim); }
+
+.earth-body { display: grid; grid-template-columns: minmax(0, 1fr) 264px; min-height: 0; }
+.earth-map { min-height: 0; background: #0b1a26; }
+.earth-map[data-tool=rect], .earth-map[data-tool=lasso], .earth-map[data-tool=circle] { cursor: crosshair; }
+.earth-map[data-tool=rect] .leaflet-interactive, .earth-map[data-tool=lasso] .leaflet-interactive, .earth-map[data-tool=circle] .leaflet-interactive { cursor: crosshair; }
+.earth-side { border-left: 1px solid var(--line); background: var(--panel); padding: 12px; display: flex; flex-direction: column; gap: 16px; overflow: auto; }
+.sel-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.sel-tag { display: inline-flex; align-items: center; gap: 5px; padding: 2px 4px 2px 8px; background: var(--btn); border: 1px solid var(--line); border-radius: var(--r); font-size: 12px; }
+.sel-tag button { display: grid; place-items: center; padding: 0; width: 18px; height: 18px; border: 0; background: none; color: var(--dim); cursor: pointer; }
+.sel-tag button:hover { color: var(--txt); }
+.dims { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: end; }
+.dims.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.dim-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--dim); min-width: 0; }
+.dim-field input { width: 100%; font-family: var(--mono); color: var(--txt); }
+.dim-field .unit { display: flex; align-items: center; gap: 5px; }
+.link-btn { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid transparent; border-radius: var(--r); background: none; color: var(--dim); cursor: pointer; font-size: 15px; }
+.link-btn.on { color: var(--txt); border-color: var(--line); background: var(--btn); }
+.hint-line { margin: 6px 0 8px; font-size: 11px; color: var(--dim); line-height: 1.4; }
+.outliers { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding: 8px; border: 1px solid var(--line); border-radius: var(--r); font-size: 11px; color: var(--dim); }
+.legend { display: grid; grid-template-columns: 12px 1fr; gap: 6px 8px; align-items: center; font-size: 11px; color: var(--dim); }
+.legend b { width: 12px; height: 12px; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2); }
+.convert { margin-top: auto; width: 100%; justify-content: center; padding: 8px; font-size: 12px; }
+
+/* Leaflet in Graphite */
+.leaflet-container { font: inherit; background: #0b1a26; }
+.leaflet-bar a { background: var(--panel); color: var(--txt); border-color: var(--line); }
+.leaflet-bar a:hover { background: var(--btn); color: var(--txt); }
+.leaflet-control-attribution { font-size: 10px; background: rgba(31, 31, 31, .78) !important; color: #bbb; }
+.leaflet-control-attribution a { color: #bbb; }
+.frame-handle { background: #fff; border: 1px solid #1f1f1f; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .4); }
+.frame-handle.n, .frame-handle.s { cursor: ns-resize; }
+.frame-handle.e, .frame-handle.w { cursor: ew-resize; }
+
+@media (max-width: 760px) {
+  .earth-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .earth-side { border-left: 0; border-top: 1px solid var(--line); max-height: 45vh; }
+  .earth-hint { display: none; }
+  .search { width: auto; flex: 1; max-width: none; }
+  .earth-top .seg span { display: none; }
+}

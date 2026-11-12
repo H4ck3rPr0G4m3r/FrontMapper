@@ -26,7 +26,6 @@ button.start-action:hover { border-color: #4a4a4a; background: #2f2f2f; }
 .recent-item small:last-child { grid-column: 1 / -1; }
 .start-error { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; margin-bottom: 20px; border: 1px solid var(--warn); border-radius: var(--r); background: var(--panel); }
 .start-error span { flex: 1; }
-.empty-note { color: var(--dim); font-size: 12px; line-height: 1.5; margin: 0; }
 
 @media (max-width: 760px) {
   .start { padding: 28px 16px 48px; }

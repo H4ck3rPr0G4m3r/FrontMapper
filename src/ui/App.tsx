@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'preact/compat';
 import { screen } from '../state/session';
 import { Editor } from './editor/Editor';
 import { StartScreen } from './start/StartScreen';
+import { EarthPicker } from './earth/EarthPicker';
 
 const params = new URLSearchParams(location.search);
 const fixture = import.meta.env.DEV ? params.get('fixture') : null;
@@ -16,15 +17,6 @@ export function App() {
     );
   }
   if (screen.value === 'editor') return <Editor />;
-  if (screen.value === 'earth') return <EarthPlaceholder />;
+  if (screen.value === 'earth') return <EarthPicker onBack={() => (screen.value = 'start')} onConvert={() => {}} />;
   return <StartScreen />;
-}
-
-/** Replaced by the Earth picker (plan Task 18). */
-function EarthPlaceholder() {
-  return (
-    <main class="start">
-      <button class="btn" onClick={() => (screen.value = 'start')}>Back</button>
-    </main>
-  );
 }

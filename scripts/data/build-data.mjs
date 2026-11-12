@@ -90,6 +90,18 @@ async function main() {
   for (const dir of ['countries', 'provinces'])
     for (const f of readdirSync(join(OUT, dir))) assertNoDatelineJumps(join(OUT, dir, f));
 
+  // Small search index for provinces: [id, name, countryA3, iso3166_2]
+  console.log('provinces-index.json');
+  const index = [];
+  for (const f of readdirSync(join(OUT, 'provinces')).sort()) {
+    const fc = JSON.parse(readFileSync(join(OUT, 'provinces', f), 'utf8'));
+    for (const feat of fc.features) {
+      const p = feat.properties;
+      if (p.name) index.push([p.id, p.name, p.a3, p.iso3166_2 ?? '']);
+    }
+  }
+  writeFileSync(join(OUT, 'provinces-index.json'), JSON.stringify(index));
+
   console.log('cities.json');
   const tmp = join(CACHE, 'places.json');
   await run(`-i ${places} encoding=utf8 -o ${tmp} format=json`);

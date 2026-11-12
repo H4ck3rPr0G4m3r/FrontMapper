@@ -6,11 +6,6 @@
 .ed-title small { color: var(--dim); font-weight: 400; margin-left: 6px; font-size: 11px; font-family: var(--mono); }
 .ed-top .grow { flex: 1; }
 
-.seg { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
-.seg button { background: none; border: 0; color: var(--dim); font-size: 11px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
-.seg button + button { border-left: 1px solid var(--line); }
-.seg button:hover { color: var(--txt); }
-.seg button.on { background: var(--sel); color: var(--selTxt); }
 
 /* Body */
 .ed-body { display: grid; grid-template-columns: 40px minmax(0, 1fr) 248px; min-height: 0; }
@@ -44,8 +39,6 @@
 .tabs button { flex: 1; background: none; border: 0; padding: 9px 0; color: var(--dim); font-size: 11px; cursor: pointer; }
 .tabs button.on { color: var(--txt); font-weight: 600; box-shadow: inset 0 -2px 0 var(--sel); }
 .pane { padding: 12px; display: flex; flex-direction: column; gap: 16px; overflow: auto; min-height: 0; }
-.grp h4 { margin: 0 0 7px; font-size: 11px; color: var(--dim); font-weight: 500; }
-.empty-note { color: var(--dim); font-size: 11px; line-height: 1.5; }
 
 /* Checks */
 .pending { color: var(--dim); font-weight: 400; }
@@ -56,9 +49,6 @@
 .issue .row .btn { padding: 2px 8px; }
 .issue.ok, .issue.accepted { display: flex; gap: 7px; align-items: center; color: var(--dim); }
 .issue.ok i, .issue.accepted i { color: var(--txt); }
-.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-size: 11px; }
-.kv dt { color: var(--dim); }
-.kv dd { margin: 0; text-align: right; font-family: var(--mono); }
 .tiers { display: flex; gap: 2px; margin-top: 9px; font-size: 10px; color: var(--dim); }
 .tiers div { flex: 1; padding-top: 4px; border-top: 3px solid var(--line); }
 .tiers div.on { border-top-color: var(--sel); color: var(--txt); font-weight: 600; }
