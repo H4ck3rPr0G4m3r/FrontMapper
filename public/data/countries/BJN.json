@@ -1,0 +1,3 @@
+{"type":"FeatureCollection", "features": [
+{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-79.9893,15.7949],[-79.9881,15.7942],[-79.9864,15.7944],[-79.9878,15.7962],[-79.9893,15.7949]]]},"properties":{"id":"BJN","name":"Bajo Nuevo Bank","iso2":""}}
+]}

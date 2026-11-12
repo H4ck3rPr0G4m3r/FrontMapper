@@ -9,12 +9,13 @@
     "preview": "vite preview",
     "test": "vitest run",
     "e2e": "playwright test",
-    "data": "node scripts/data/build-data.mjs"
+    "data": "node --use-system-ca scripts/data/build-data.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",
     "@preact/preset-vite": "^2.10.6",
     "@types/node": "^26.6.6",
+    "mapshaper": "^0.7.101",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"
