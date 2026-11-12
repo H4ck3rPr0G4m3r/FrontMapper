@@ -3,6 +3,7 @@ import { effect } from '@preact/signals';
 import { AnalysisClient } from '../../state/analysis';
 import { ChecksTab } from './ChecksTab';
 import { NationsTab } from './NationsTab';
+import { InfoTab } from './InfoTab';
 import { loadFlags } from '../../state/flags';
 import type { Overlay } from '../../render/overlay';
 import type { Renderer } from '../../render/renderer';
@@ -94,6 +95,7 @@ export function Editor({ onReady }: Props) {
         <ToolRail />
         <div class="ed-center">
           <EditorCanvas
+            key={gridKey(p.grid)}
             grid={p.grid}
             onReady={ready}
             wantsPan={controller.wantsPan}
@@ -108,12 +110,21 @@ export function Editor({ onReady }: Props) {
           panes={{
             checks: <ChecksTab controller={controller} />,
             nations: <NationsTab controller={controller} />,
-            info: <p class="empty-note">Map details will appear here.</p>,
+            info: <InfoTab />,
           }}
         />
       </div>
     </div>
   );
+}
+
+const gridKeys = new WeakMap<object, number>();
+let nextGridKey = 1;
+/** Stable key per grid object, so replacing the grid (crop, resize, convert) remounts the canvas. */
+function gridKey(g: object) {
+  let k = gridKeys.get(g);
+  if (!k) gridKeys.set(g, (k = nextGridKey++));
+  return k;
 }
 
 function installDevHook(c: EditorController, r: Renderer) {

@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import type { ViewMode } from '../../render/renderer';
-import { canRedo, canUndo, project, view } from '../../state/store';
+import { canRedo, canUndo, meta, project, view } from '../../state/store';
 
 const VIEWS: { id: ViewMode; label: string }[] = [
   { id: 'game', label: 'Game' },
@@ -21,7 +21,7 @@ export function TopBar({ onUndo, onRedo, actions }: Props) {
     <header class="ed-top">
       <i class="ph-bold ph-map-trifold" style={{ fontSize: 16 }} />
       <span class="ed-title">
-        {p?.name ?? 'Untitled map'}
+        {meta.value.name.trim() || 'Untitled map'}
         {p && <small>{`${p.grid.width} × ${p.grid.height}`}</small>}
       </span>
       <button class="icon-btn" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo.value} onClick={onUndo}>

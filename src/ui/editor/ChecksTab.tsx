@@ -5,6 +5,7 @@ import { analysis, analysisPending } from '../../state/analysis';
 import type { EditorController } from '../../state/controller';
 import { ISSUE_TEXT, type NationIssueKind } from '../../core/nations';
 import { currentNationIssues } from '../../state/nationChecks';
+import { infoErrors } from '../../state/mapOps';
 import { nations, project } from '../../state/store';
 
 /** Accepted warnings, keyed by a signature of the bodies they covered. */
@@ -85,6 +86,25 @@ export function ChecksTab({ controller, children }: Props) {
       </section>
 
       <NationSummary />
+
+      <section class="grp">
+        <h4>Map info</h4>
+        {infoErrors.value.length ? (
+          <ul class="nation-sum">
+            {infoErrors.value.map((e) => (
+              <li key={e}>
+                <span class="sq" />
+                <span>{e}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div class="issue ok">
+            <i class="ph ph-check" />
+            <span>info.json is valid</span>
+          </div>
+        )}
+      </section>
 
       {children}
     </>

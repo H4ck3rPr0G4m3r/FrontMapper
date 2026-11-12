@@ -1,6 +1,7 @@
 import { signal } from '@preact/signals';
 import type { MapGrid } from '../core/grid';
 import type { Nation } from '../core/nations';
+import type { MapMeta } from '../core/info';
 import type { Selection } from '../core/selection';
 import type { Paint } from '../core/tools/common';
 import type { TextureOpts } from '../core/tools/texture';
@@ -39,3 +40,6 @@ export const busy = signal(false);
 /** Nations of the open map, and the one selected in the list or on the map. */
 export const nations = signal<Nation[]>([]);
 export const selectedNation = signal<string | null>(null);
+
+/** info.json details of the open map. */
+export const meta = signal<MapMeta>({ name: 'Untitled map', categories: [] });
