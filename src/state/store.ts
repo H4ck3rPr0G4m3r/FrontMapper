@@ -1,5 +1,6 @@
 import { signal } from '@preact/signals';
 import type { MapGrid } from '../core/grid';
+import type { Nation } from '../core/nations';
 import type { Selection } from '../core/selection';
 import type { Paint } from '../core/tools/common';
 import type { TextureOpts } from '../core/tools/texture';
@@ -34,3 +35,7 @@ export const spacePan = signal(false);
 
 /** True while a segmented job (e.g. texture over selection) is still running. */
 export const busy = signal(false);
+
+/** Nations of the open map, and the one selected in the list or on the map. */
+export const nations = signal<Nation[]>([]);
+export const selectedNation = signal<string | null>(null);

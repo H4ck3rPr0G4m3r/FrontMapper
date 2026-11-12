@@ -2,13 +2,15 @@ import { useEffect, useMemo } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import { AnalysisClient } from '../../state/analysis';
 import { ChecksTab } from './ChecksTab';
+import { NationsTab } from './NationsTab';
+import { loadFlags } from '../../state/flags';
 import type { Overlay } from '../../render/overlay';
 import type { Renderer } from '../../render/renderer';
 import { EditorController } from '../../state/controller';
 import { brushDiameter, project, revision, selection, spacePan, tool, view } from '../../state/store';
 import { BottomBar } from './BottomBar';
 import { EditorCanvas } from './EditorCanvas';
-import { SidePanel } from './SidePanel';
+import { SidePanel, sideTab } from './SidePanel';
 import { TOOL_KEYS, ToolRail } from './ToolRail';
 import { TopBar } from './TopBar';
 import './editor.css';
@@ -24,6 +26,8 @@ export function Editor({ onReady }: Props) {
 
   useEffect(() => {
     if (!controller) return;
+    loadFlags();
+    controller.onNationPicked = () => (sideTab.value = 'nations');
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest('input, textarea, select, [contenteditable]')) return;
@@ -103,7 +107,7 @@ export function Editor({ onReady }: Props) {
         <SidePanel
           panes={{
             checks: <ChecksTab controller={controller} />,
-            nations: <p class="empty-note">No nations yet. Use the spawn tool to place one.</p>,
+            nations: <NationsTab controller={controller} />,
             info: <p class="empty-note">Map details will appear here.</p>,
           }}
         />

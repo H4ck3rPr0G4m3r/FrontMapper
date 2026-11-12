@@ -3,7 +3,9 @@ import { signal } from '@preact/signals';
 import { formatCount, sizeTier, TIERS } from '../../core/size';
 import { analysis, analysisPending } from '../../state/analysis';
 import type { EditorController } from '../../state/controller';
-import { project } from '../../state/store';
+import { ISSUE_TEXT, type NationIssueKind } from '../../core/nations';
+import { currentNationIssues } from '../../state/nationChecks';
+import { nations, project } from '../../state/store';
 
 /** Accepted warnings, keyed by a signature of the bodies they covered. */
 const accepted = signal<{ islands: string | null; lakes: string | null }>({ islands: null, lakes: null });
@@ -82,8 +84,39 @@ export function ChecksTab({ controller, children }: Props) {
         {tier === 'Huge' && <p class="note">Large maps run poorly on mobile.</p>}
       </section>
 
+      <NationSummary />
+
       {children}
     </>
+  );
+}
+
+function NationSummary() {
+  const list = nations.value;
+  const issues = currentNationIssues.value;
+  const byKind = new Map<NationIssueKind, number>();
+  for (const i of issues) byKind.set(i.kind, (byKind.get(i.kind) ?? 0) + 1);
+  return (
+    <section class="grp">
+      <h4>Nations</h4>
+      {!list.length && <p class="empty-note">No nations placed. Players will spawn anywhere.</p>}
+      {list.length > 0 && !issues.length && (
+        <div class="issue ok">
+          <i class="ph ph-check" />
+          <span>{list.length === 1 ? 'The nation looks fine' : `All ${list.length} nations look fine`}</span>
+        </div>
+      )}
+      {issues.length > 0 && (
+        <ul class="nation-sum">
+          {[...byKind].map(([kind, n]) => (
+            <li key={kind}>
+              <span class="sq" />
+              <span>{`${ISSUE_TEXT[kind]} (${n})`}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

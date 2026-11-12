@@ -79,6 +79,7 @@ export function BottomBar({ onTextureSelection }: { onTextureSelection: () => vo
       )}
       {t === 'select' && <span class="hint">{selection.value ? 'Esc clears the selection' : 'Drag to select an area; tools only affect the selection'}</span>}
       {t === 'pan' && <span class="hint">Drag to move, scroll to zoom</span>}
+      {t === 'spawn' && <span class="hint">Click land to place a nation, drag a pin to move it</span>}
       {SIZE_TOOLS.has(t) && (
         <div style={{ marginLeft: 'auto' }}>
           <Slider label="Size" min={1} max={256} value={brushDiameter.value} onInput={(v) => (brushDiameter.value = v)} />

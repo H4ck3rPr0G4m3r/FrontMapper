@@ -66,3 +66,29 @@
 .tiers div { flex: 1; padding-top: 4px; border-top: 3px solid var(--line); }
 .tiers div.on { border-top-color: var(--sel); color: var(--txt); font-weight: 600; }
 .note { margin: 8px 0 0; font-size: 11px; color: var(--dim); }
+
+/* Nations */
+.nations { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.nation-row { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border-radius: var(--r); cursor: pointer; }
+.nation-row:hover { background: var(--btn); }
+.nation.on > .nation-row { background: var(--btn); box-shadow: inset 2px 0 0 var(--sel); }
+.nation-name { flex: 1; min-width: 0; background: transparent !important; border-color: transparent !important; padding: 3px 4px !important; }
+.nation-name:focus { border-color: var(--line) !important; background: var(--app) !important; }
+.flag-btn { width: 26px; height: 18px; flex: none; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 2px; background: var(--app); color: var(--dim); cursor: pointer; overflow: hidden; }
+.flag-btn img { width: 100%; height: 100%; object-fit: cover; }
+.nation .sq { width: 8px; height: 8px; flex: none; background: var(--warn); }
+.nation .icon-btn { width: 24px; height: 24px; font-size: 13px; }
+.nation-issues { margin: 2px 0 4px 36px; padding: 0; list-style: none; color: var(--warn); font-size: 11px; }
+.flag-picker { margin: 4px 0 8px; padding: 8px; border: 1px solid var(--line); border-radius: var(--r); background: var(--app); }
+.flag-picker input { width: 100%; }
+.flag-manual { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 6px; }
+.flag-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; margin-top: 6px; max-height: 210px; overflow: auto; }
+.flag-grid button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 2px; border: 1px solid transparent; border-radius: var(--r); background: none; color: var(--dim); font-size: 10px; cursor: pointer; min-width: 0; }
+.flag-grid button:hover { background: var(--btn); color: var(--txt); }
+.flag-grid button.on { border-color: var(--sel); color: var(--txt); }
+.flag-grid img { width: 30px; height: 20px; object-fit: cover; border-radius: 2px; }
+.flag-grid i { font-size: 20px; height: 20px; }
+.flag-grid span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nation-sum { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.nation-sum li { display: flex; gap: 7px; align-items: baseline; }
+.nation-sum .sq { width: 8px; height: 8px; flex: none; background: var(--warn); transform: translateY(-1px); }

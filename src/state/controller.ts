@@ -9,10 +9,12 @@ import { textureAt, textureRect } from '../core/tools/texture';
 import { growIsland } from '../core/tools/grow';
 import type { Overlay } from '../render/overlay';
 import type { AnalysisClient } from './analysis';
+import { issuesByNation } from './nationChecks';
 import type { Renderer } from '../render/renderer';
 import type { PointerInfo } from '../ui/editor/EditorCanvas';
+import { newNationId } from '../core/nations';
 import {
-  brushDiameter, busy, canRedo, canUndo, paint, raiseAmount, revision, selection, spacePan, textureOpts, tool,
+  brushDiameter, busy, canRedo, canUndo, nations, paint, raiseAmount, revision, selectedNation, selection, spacePan, textureOpts, tool,
 } from './store';
 
 const FOOTPRINT_TOOLS = new Set(['brush', 'raise', 'smooth', 'texture']);
@@ -31,6 +33,9 @@ export class EditorController {
   private hover: { x: number; y: number } | null = null;
   private stroke: { last: { x: number; y: number }; seed: number } | null = null;
   private selectStart: { x: number; y: number } | null = null;
+  private dragNation: string | null = null;
+  /** Called when a nation is placed or picked on the map (opens the Nations tab). */
+  onNationPicked: (() => void) | null = null;
 
   constructor(readonly grid: MapGrid) {
     this.history = new History(grid);
@@ -40,6 +45,7 @@ export class EditorController {
     this.renderer = r;
     this.overlay = o;
     o.add((ctx) => this.drawSelection(ctx));
+    o.add((ctx) => this.drawNations(ctx));
     o.add((ctx) => this.drawCursor(ctx));
   }
 
@@ -66,6 +72,22 @@ export class EditorController {
       selection.value = selectionFromCorners(c.x, c.y, c.x, c.y, g.width, g.height);
       return;
     }
+    if (t === 'spawn') {
+      const hit = this.nationAt(p);
+      if (hit) {
+        selectedNation.value = hit;
+      } else if (inMap(g, c)) {
+        const id = newNationId();
+        const list = nations.value;
+        let k = list.length + 1;
+        while (list.some((n) => n.name === `Nation ${k}`)) k++;
+        nations.value = [...list, { id, name: `Nation ${k}`, x: c.x, y: c.y, flag: '', source: 'custom' }];
+        selectedNation.value = id;
+      }
+      this.dragNation = selectedNation.value;
+      this.onNationPicked?.();
+      return;
+    }
     if (!inMap(g, c)) return;
     if (t === 'eyedropper') {
       const picked = pickAt(g, c.x, c.y);
@@ -89,7 +111,11 @@ export class EditorController {
   onMove = (p: PointerInfo) => {
     const c = cell(p);
     this.hover = c;
-    if (this.selectStart) {
+    if (this.dragNation && p.buttons & 1) {
+      const id = this.dragNation;
+      const x = Math.max(0, Math.min(this.grid.width - 1, c.x)), y = Math.max(0, Math.min(this.grid.height - 1, c.y));
+      nations.value = nations.value.map((n) => (n.id === id && (n.x !== x || n.y !== y) ? { ...n, x, y } : n));
+    } else if (this.selectStart) {
       selection.value = selectionFromCorners(this.selectStart.x, this.selectStart.y, c.x, c.y, this.grid.width, this.grid.height);
     } else if (this.stroke && p.buttons & 1) {
       const t = tool.value;
@@ -108,6 +134,10 @@ export class EditorController {
   };
 
   onUp = () => {
+    if (this.dragNation) {
+      this.dragNation = null;
+      return;
+    }
     if (this.selectStart) {
       this.selectStart = null;
       const s = selection.value;
@@ -124,6 +154,33 @@ export class EditorController {
     this.hover = null;
     this.updateCursor();
   };
+
+  /** Nation pin under the pointer (within 9 screen px), if any. */
+  nationAt(p: { x: number; y: number }): string | null {
+    const r = this.renderer;
+    if (!r) return null;
+    const s = r.mapToScreen(p.x, p.y);
+    let best: string | null = null;
+    let bestD = 9;
+    for (const n of nations.value) {
+      const q = r.mapToScreen(n.x + 0.5, n.y + 0.5);
+      const d = Math.hypot(q.x - s.x, q.y - s.y);
+      if (d < bestD) {
+        bestD = d;
+        best = n.id;
+      }
+    }
+    return best;
+  }
+
+  /** Centre the camera on a nation without changing zoom (unless zoomed far out). */
+  focusNation(id: string) {
+    const r = this.renderer;
+    const n = nations.value.find((v) => v.id === id);
+    if (!r || !n) return;
+    r.camera = { x: n.x + 0.5, y: n.y + 0.5, zoom: Math.max(r.camera.zoom, 2) };
+    r.cameraChanged();
+  }
 
   undo() {
     if (busy.value) return;
@@ -265,6 +322,43 @@ export class EditorController {
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1;
     ctx.stroke();
+  }
+
+  private drawNations(ctx: CanvasRenderingContext2D) {
+    const r = this.renderer;
+    const list = nations.value;
+    if (!r || !list.length) return;
+    const issues = issuesByNation.value;
+    const sel = selectedNation.value;
+    const labels = list.length <= 120 || r.camera.zoom >= 0.6;
+    ctx.font = '600 11px ui-sans-serif, "Segoe UI", system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    for (const n of list) {
+      const s = r.mapToScreen(n.x + 0.5, n.y + 0.5);
+      if (s.x < -200 || s.y < -20 || s.x > r.canvas.clientWidth + 20 || s.y > r.canvas.clientHeight + 20) continue;
+      const bad = issues.has(n.id);
+      if (n.id === sel) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 8, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#1f1f1f';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = bad ? '#ff4f43' : '#ececec';
+      ctx.fill();
+      if (!labels) continue;
+      const w = ctx.measureText(n.name).width;
+      ctx.fillStyle = '#ececec';
+      ctx.fillRect(Math.round(s.x + 7), Math.round(s.y - 8), Math.ceil(w + 10), 16);
+      ctx.fillStyle = '#1f1f1f';
+      ctx.fillText(n.name, Math.round(s.x + 12), Math.round(s.y));
+    }
   }
 
   private drawSelection(ctx: CanvasRenderingContext2D) {
