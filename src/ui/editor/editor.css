@@ -5,9 +5,6 @@
 .ed-title { font-weight: 650; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ed-title small { color: var(--dim); font-weight: 400; margin-left: 6px; font-size: 11px; font-family: var(--mono); }
 .ed-top .grow { flex: 1; }
-.icon-btn { width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r); border: 1px solid transparent; background: none; color: var(--dim); cursor: pointer; font-size: 15px; }
-.icon-btn:hover:not(:disabled) { background: var(--btn); color: var(--txt); }
-.icon-btn:disabled { opacity: .35; cursor: default; }
 
 .seg { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
 .seg button { background: none; border: 0; color: var(--dim); font-size: 11px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
@@ -77,8 +74,7 @@
 .flag-btn { width: 26px; height: 18px; flex: none; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 2px; background: var(--app); color: var(--dim); cursor: pointer; overflow: hidden; }
 .flag-btn img { width: 100%; height: 100%; object-fit: cover; }
 .nation .sq { width: 8px; height: 8px; flex: none; background: var(--warn); }
-.nation .icon-btn { width: 24px; height: 24px; font-size: 13px; }
-.nation-issues { margin: 2px 0 4px 36px; padding: 0; list-style: none; color: var(--warn); font-size: 11px; }
+.nation .nation-issues { margin: 2px 0 4px 36px; padding: 0; list-style: none; color: var(--warn); font-size: 11px; }
 .flag-picker { margin: 4px 0 8px; padding: 8px; border: 1px solid var(--line); border-radius: var(--r); background: var(--app); }
 .flag-picker input { width: 100%; }
 .flag-manual { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 6px; }
@@ -101,9 +97,6 @@
 .field-error { color: var(--warn); font-size: 11px; }
 .derived { margin: -4px 0 0; font-size: 11px; color: var(--dim); line-height: 1.5; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.pill { border: 1px solid var(--line); background: none; color: var(--dim); font-size: 11px; padding: 3px 8px; border-radius: 999px; cursor: pointer; }
-.pill:hover { color: var(--txt); }
-.pill.on { background: var(--sel); border-color: var(--sel); color: var(--selTxt); }
 .size-row { display: flex; align-items: center; gap: 5px; color: var(--dim); }
 .size-row input { width: 64px; font-family: var(--mono); }
 

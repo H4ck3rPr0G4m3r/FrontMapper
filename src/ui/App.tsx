@@ -1,4 +1,7 @@
 import { lazy, Suspense } from 'preact/compat';
+import { screen } from '../state/session';
+import { Editor } from './editor/Editor';
+import { StartScreen } from './start/StartScreen';
 
 const params = new URLSearchParams(location.search);
 const fixture = import.meta.env.DEV ? params.get('fixture') : null;
@@ -12,9 +15,16 @@ export function App() {
       </Suspense>
     );
   }
+  if (screen.value === 'editor') return <Editor />;
+  if (screen.value === 'earth') return <EarthPlaceholder />;
+  return <StartScreen />;
+}
+
+/** Replaced by the Earth picker (plan Task 18). */
+function EarthPlaceholder() {
   return (
-    <main style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 16, margin: 0 }}>FrontMapper</h1>
+    <main class="start">
+      <button class="btn" onClick={() => (screen.value = 'start')}>Back</button>
     </main>
   );
 }

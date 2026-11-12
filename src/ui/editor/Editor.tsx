@@ -7,6 +7,7 @@ import { InfoTab } from './InfoTab';
 import { ExportActions } from './ExportActions';
 import { AutoSaver } from '../../state/autosave';
 import { currentProjectState } from '../../state/projectIO';
+import { backToStart } from '../../state/session';
 import { loadFlags } from '../../state/flags';
 import type { Overlay } from '../../render/overlay';
 import type { Renderer } from '../../render/renderer';
@@ -74,6 +75,7 @@ export function Editor({ onReady }: Props) {
     controller.analysis = client;
     const stopAnalysis = effect(() => client.schedule(revision.value));
     const saver = new AutoSaver(() => currentProjectState(controller));
+    void saver.flush(); // a new or reopened map shows up in Recent right away
     let first = true;
     const stopSave = effect(() => {
       revision.value;
@@ -112,7 +114,7 @@ export function Editor({ onReady }: Props) {
 
   return (
     <div class="ed">
-      <TopBar onUndo={() => controller.undo()} onRedo={() => controller.redo()} actions={<ExportActions controller={controller} />} />
+      <TopBar onUndo={() => controller.undo()} onRedo={() => controller.redo()} actions={<ExportActions controller={controller} />} onHome={backToStart} />
       <div class="ed-body">
         <ToolRail />
         <div class="ed-center">

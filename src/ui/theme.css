@@ -49,6 +49,15 @@ input[type=text], input[type=number], textarea, select {
 }
 input[type=range] { accent-color: var(--sel); }
 
+/* Shared controls */
+.icon-btn { width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r); border: 1px solid transparent; background: none; color: var(--dim); cursor: pointer; font-size: 15px; }
+.icon-btn:hover:not(:disabled) { background: var(--btn); color: var(--txt); }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+.icon-btn { width: 24px; height: 24px; font-size: 13px; }
+.pill { border: 1px solid var(--line); background: none; color: var(--dim); font-size: 11px; padding: 3px 8px; border-radius: 999px; cursor: pointer; }
+.pill:hover { color: var(--txt); }
+.pill.on { background: var(--sel); border-color: var(--sel); color: var(--selTxt); }
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }

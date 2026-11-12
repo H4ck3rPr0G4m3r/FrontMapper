@@ -13,13 +13,20 @@ interface Props {
   onRedo: () => void;
   /** Extra actions on the right (Earth, Save, Export...). */
   actions?: ComponentChildren;
+  onHome?: () => void;
 }
 
-export function TopBar({ onUndo, onRedo, actions }: Props) {
+export function TopBar({ onUndo, onRedo, actions, onHome }: Props) {
   const p = project.value;
   return (
     <header class="ed-top">
-      <i aria-hidden="true" class="ph-bold ph-map-trifold" style={{ fontSize: 16 }} />
+      {onHome ? (
+        <button class="icon-btn" aria-label="Back to start" title="Back to start" onClick={onHome}>
+          <i aria-hidden="true" class="ph-bold ph-map-trifold" />
+        </button>
+      ) : (
+        <i aria-hidden="true" class="ph-bold ph-map-trifold" style={{ fontSize: 16 }} />
+      )}
       <span class="ed-title">
         {meta.value.name.trim() || 'Untitled map'}
         {p && <small>{`${p.grid.width} × ${p.grid.height}`}</small>}
