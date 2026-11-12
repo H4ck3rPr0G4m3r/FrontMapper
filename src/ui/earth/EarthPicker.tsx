@@ -1,5 +1,5 @@
 import { useRef } from 'preact/hooks';
-import type L from 'leaflet';
+import L from 'leaflet';
 import { selectedRegionIds, toggleRegion } from '../../earth/selectionOps';
 import { canConvert, countriesLow, earthOps, earthTool, ensureProvinces, provincesByCountry, type EarthTool } from '../../state/earthState';
 import { EarthMap } from './EarthMap';
@@ -30,10 +30,7 @@ export function EarthPicker({ onBack, onConvert }: Props) {
       h.level === 'country'
         ? countriesLow.value?.features.find((f) => f.properties.id === h.id)
         : (await ensureProvinces(h.country)).features.find((f) => f.properties.id === h.id);
-    if (geom && flyTo.current) {
-      const { default: Leaflet } = await import('leaflet');
-      flyTo.current(Leaflet.geoJSON(geom as any).getBounds());
-    }
+    if (geom && flyTo.current) flyTo.current(L.geoJSON(geom as any).getBounds());
   };
 
   const ids = selectedRegionIds(earthOps.value);

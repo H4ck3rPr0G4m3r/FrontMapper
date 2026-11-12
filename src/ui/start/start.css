@@ -51,6 +51,9 @@
 .blank-size > i { height: 28px; display: grid; place-items: center; color: var(--faint); font-size: 11px; }
 .blank-size .btn { margin-left: auto; }
 
+.blank-note { font-size: 11px; color: var(--dim); font-family: var(--mono); }
+.blank-note.bad { color: var(--warn); font-family: var(--font); }
+
 /* Open */
 .open-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .open-card {

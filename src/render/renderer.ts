@@ -5,6 +5,8 @@ import { SEGMENT, SegmentScheduler, segmentCols, segmentRect, segmentsCovering }
 import { FRAG, VERT } from './shaders';
 
 export type ViewMode = 'game' | 'elevation' | 'export';
+export const MIN_ZOOM = 0.02;
+export const MAX_ZOOM = 64;
 const VIEW_INDEX: Record<ViewMode, number> = { game: 0, elevation: 1, export: 2 };
 
 interface Layer {
@@ -24,6 +26,8 @@ export class Renderer {
   scheduler: SegmentScheduler | null = null;
   /** Called every animation frame (overlay redraws hook in here). */
   onFrame: (() => void) | null = null;
+  /** Called whenever the camera moves or zooms. */
+  onCamera: ((zoom: number) => void) | null = null;
 
   private program: WebGLProgram;
   private vao: WebGLVertexArrayObject;
@@ -141,6 +145,13 @@ export class Renderer {
   cameraChanged() {
     this.dirty = true;
     this.scheduler?.setFocus(this.camera.x, this.camera.y);
+    this.onCamera?.(this.camera.zoom);
+  }
+
+  /** Zoom about the centre of the view by `factor`. */
+  zoomBy(factor: number) {
+    this.camera.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, this.camera.zoom * factor));
+    this.cameraChanged();
   }
 
   requestDraw() {
@@ -165,9 +176,13 @@ export class Renderer {
 
   destroy() {
     cancelAnimationFrame(this.raf);
+    // Nothing pumps the queue any more, so release anything waiting on it.
+    this.scheduler?.clear();
     this.disposeLayer(this.main);
     this.disposeLayer(this.exp);
     this.main = this.exp = null;
+    // Browsers cap live WebGL contexts; free this one now instead of waiting for GC.
+    this.gl.getExtension('WEBGL_lose_context')?.loseContext();
   }
 
   private get cssWidth() {

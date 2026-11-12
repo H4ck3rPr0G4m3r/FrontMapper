@@ -67,3 +67,15 @@ describe('cropGrid / resizeGrid', () => {
     expect(transform.sx).toBeCloseTo(2);
   });
 });
+
+describe('validateInfo nation messages', () => {
+  it('names the nation instead of a schema path', () => {
+    const bad: Nation[] = [
+      { id: 'a', name: '', x: 10, y: 20, flag: '', source: 'custom' },
+      { id: 'b', name: 'Utö', x: -4, y: 20, flag: '', source: 'custom' },
+    ];
+    const errors = validateInfo(buildInfoJson(meta, bad));
+    expect(errors).toContain('Nation 1: needs a name');
+    expect(errors).toContain('Nation "Utö": is outside the map');
+  });
+});

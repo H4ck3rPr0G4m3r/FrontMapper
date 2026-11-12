@@ -11,6 +11,9 @@ const SWATCHES: { label: string; paint: Paint; color: string }[] = [
   { label: 'Void', paint: { terrain: VOID, mag: 0 }, color: '#000' },
 ];
 
+/** Plains below 10, highlands 10 to 19, mountains from 20. */
+const band = (mag: number) => (mag < 10 ? 0 : mag < 20 ? 1 : 2);
+
 const SIZE_TOOLS = new Set(['brush', 'raise', 'smooth', 'texture']);
 
 function Slider(props: { label: string; min: number; max: number; step?: number; value: number; onInput: (v: number) => void; format?: (v: number) => string }) {
@@ -45,7 +48,7 @@ export function BottomBar({ onTextureSelection }: { onTextureSelection: () => vo
       {showPaint && (
         <div class="swatches" role="group" aria-label="Terrain">
           {SWATCHES.map((s) => {
-            const on = s.paint.terrain === p.terrain && (s.paint.terrain !== LAND || s.paint.mag === p.mag);
+            const on = s.paint.terrain === p.terrain && (s.paint.terrain !== LAND || band(s.paint.mag) === band(p.mag));
             return (
               <button key={s.label} class={`chip${on ? ' on' : ''}`} aria-pressed={on} onClick={() => (paint.value = s.paint)}>
                 <b style={{ background: s.color }} />

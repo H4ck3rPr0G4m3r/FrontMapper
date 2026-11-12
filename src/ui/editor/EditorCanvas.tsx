@@ -1,7 +1,8 @@
+import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import type { MapGrid } from '../../core/grid';
 import { Overlay } from '../../render/overlay';
-import { Renderer } from '../../render/renderer';
+import { MAX_ZOOM, MIN_ZOOM, Renderer } from '../../render/renderer';
 
 export interface PointerInfo {
   /** Map coordinates (fractional). */
@@ -19,12 +20,18 @@ export interface CanvasHandlers {
   onMove?: (p: PointerInfo) => void;
   onUp?: (p: PointerInfo) => void;
   onLeave?: () => void;
+  /** The pointer was taken away mid-gesture (touch cancelled, capture lost). */
+  onCancel?: () => void;
 }
 
 interface Props extends CanvasHandlers {
   grid: MapGrid | null;
   onReady?: (r: Renderer, o: Overlay) => void;
   cursor?: string;
+  /** Camera to start from instead of fitting the map. */
+  initialCamera?: { x: number; y: number; zoom: number };
+  /** Controls floating over the canvas. */
+  children?: ComponentChildren;
 }
 
 /** Hosts the WebGL renderer and the 2D overlay; handles pan and zoom. */
@@ -50,7 +57,13 @@ export function EditorCanvas(props: Props) {
   }, []);
 
   useEffect(() => {
-    if (props.grid && rRef.current && rRef.current.grid !== props.grid) rRef.current.setMap(props.grid);
+    const r = rRef.current;
+    if (!props.grid || !r || r.grid === props.grid) return;
+    r.setMap(props.grid);
+    if (props.initialCamera) {
+      r.camera = { ...props.initialCamera };
+      r.cameraChanged();
+    }
   }, [props.grid]);
 
   useEffect(() => {
@@ -91,7 +104,7 @@ export function EditorCanvas(props: Props) {
       const sx = e.clientX - b.left, sy = e.clientY - b.top;
       const before = r.screenToMap(sx, sy);
       const factor = Math.exp(-e.deltaY * 0.0015);
-      r.camera.zoom = Math.min(64, Math.max(0.02, r.camera.zoom * factor));
+      r.camera.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, r.camera.zoom * factor));
       const after = r.screenToMap(sx, sy);
       r.camera.x += before.x - after.x;
       r.camera.y += before.y - after.y;
@@ -99,14 +112,22 @@ export function EditorCanvas(props: Props) {
       handlers.current.onMove?.(info(e));
     };
     const leave = () => handlers.current.onLeave?.();
+    const cancel = () => {
+      panning = null;
+      handlers.current.onCancel?.();
+    };
+    const aux = (e: MouseEvent) => e.preventDefault();
     el.addEventListener('pointerdown', down);
+    el.addEventListener('pointercancel', cancel);
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
     el.addEventListener('pointerleave', leave);
     el.addEventListener('wheel', wheel, { passive: false });
-    el.addEventListener('auxclick', (e) => e.preventDefault());
+    el.addEventListener('auxclick', aux);
     return () => {
       el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointercancel', cancel);
+      el.removeEventListener('auxclick', aux);
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
       el.removeEventListener('pointerleave', leave);
@@ -122,6 +143,7 @@ export function EditorCanvas(props: Props) {
         data-overlay
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: props.cursor ?? 'default', touchAction: 'none' }}
       />
+      {props.children}
     </div>
   );
 }

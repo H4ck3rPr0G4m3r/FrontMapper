@@ -1,7 +1,7 @@
 /* Graphite theme (spec: Visual style). The map supplies the colour; red is only for problems. */
 :root {
   /* Surfaces, darkest to lightest */
-  --stage: #151515;
+  --stage: #161616;
   --app: #1f1f1f;
   --panel: #282828;
   --btn: #343434;
@@ -149,6 +149,14 @@ input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px va
 /* Screens ease in instead of popping */
 @keyframes screen-in { from { opacity: 0; } to { opacity: 1; } }
 .screen-in { animation: screen-in .18s var(--ease) both; }
+
+/* Crash screen */
+.crash { min-height: 100dvh; max-width: 460px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+.crash > i { font-size: 26px; color: var(--warn); }
+.crash h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.02em; }
+.crash p { margin: 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.crash .crash-note { color: var(--dim); }
+.crash-actions { display: flex; gap: 6px; margin-top: 10px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

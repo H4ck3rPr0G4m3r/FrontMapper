@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { importOpenFrontMap, openProject } from '../../core/project';
 import { forgetAutosave, listRecent, loadAutosave, type RecentEntry } from '../../state/autosave';
 import { countriesLow, ensureCountries } from '../../state/earthState';
+import { formatCount, sizeProblem, sizeTier } from '../../core/size';
 import { newBlankMap, openInEditor, screen } from '../../state/session';
 import { readFile } from '../download';
 import './start.css';
@@ -111,7 +112,15 @@ export function StartScreen() {
     else setError(`"${r.name}" could not be restored from this browser's storage.`);
   };
 
-  const validSize = w >= 4 && h >= 4;
+  const problem = sizeProblem(w, h);
+
+  const createBlank = () => {
+    try {
+      newBlankMap(w, h);
+    } catch {
+      setError('This browser could not allocate a map that large. Try a smaller size.');
+    }
+  };
 
   return (
     <main class="start screen-in">
@@ -172,9 +181,12 @@ export function StartScreen() {
                   Height
                   <input type="number" step={4} min={4} value={h} onInput={(e) => setH(+(e.currentTarget as HTMLInputElement).value)} />
                 </label>
-                <button class="btn primary" disabled={!validSize} onClick={() => newBlankMap(w, h)}>
+                <button class="btn primary" disabled={!!problem} onClick={createBlank}>
                   Create blank map
                 </button>
+              </span>
+              <span class={`blank-note${problem ? ' bad' : ''}`} aria-live="polite">
+                {problem ?? `${formatCount(w * h)} px, ${sizeTier(w * h).toLowerCase()}${sizeTier(w * h) === 'Huge' ? '. Large maps run poorly on mobile.' : ''}`}
               </span>
             </div>
           </div>
@@ -196,8 +208,8 @@ export function StartScreen() {
               </span>
             </button>
           </div>
-          <input ref={projectInput} type="file" accept=".frontmap" hidden onChange={(e) => onProject((e.currentTarget as HTMLInputElement).files)} />
-          <input ref={importInput} type="file" accept=".png,.json" multiple hidden onChange={(e) => onImport((e.currentTarget as HTMLInputElement).files)} />
+          <input ref={projectInput} type="file" accept=".frontmap" hidden onChange={(e) => { const el = e.currentTarget as HTMLInputElement; void onProject(el.files).finally(() => (el.value = '')); }} />
+          <input ref={importInput} type="file" accept=".png,.json" multiple hidden onChange={(e) => { const el = e.currentTarget as HTMLInputElement; void onImport(el.files).finally(() => (el.value = '')); }} />
         </section>
 
         <section class="start-col">
@@ -234,7 +246,7 @@ export function StartScreen() {
                     aria-label={`Remove ${r.name} from recent`}
                     title="Remove from recent"
                     onClick={async () => {
-                      await forgetAutosave(r.id);
+                      await forgetAutosave(r.id).catch(() => undefined);
                       setRecent(await listRecent());
                     }}
                   >

@@ -56,7 +56,11 @@ function NationRow({ n, controller }: { n: Nation; controller: EditorController 
           onInput={(e) => update(n.id, { name: (e.currentTarget as HTMLInputElement).value })}
         />
         {issues && <span class="sq" title={issues.map((i) => ISSUE_TEXT[i.kind]).join('\n')} />}
-        <button class="icon-btn sm" title="Delete nation" aria-label={`Delete ${n.name}`} onClick={(e) => { e.stopPropagation(); nations.value = nations.value.filter((v) => v.id !== n.id); }}>
+        <button class="icon-btn sm" title="Delete nation" aria-label={`Delete ${n.name}`} onClick={(e) => {
+          e.stopPropagation();
+          nations.value = nations.value.filter((v) => v.id !== n.id);
+          if (selectedNation.value === n.id) selectedNation.value = null;
+        }}>
           <i aria-hidden="true" class="ph ph-trash" />
         </button>
       </div>
@@ -70,14 +74,17 @@ function NationRow({ n, controller }: { n: Nation; controller: EditorController 
   );
 }
 
+const FLAG_PAGE = 60;
+
 function FlagPicker({ current, onPick }: { current: string; onPick: (code: string) => void }) {
   const [q, setQ] = useState('');
   const codes = flagCodes.value;
-  const matches = useMemo(() => {
+  const all = useMemo(() => {
     if (!codes) return [];
     const s = q.trim().toLowerCase();
-    return (s ? codes.filter((c) => c.toLowerCase().includes(s)) : codes).slice(0, 60);
+    return s ? codes.filter((c) => c.toLowerCase().includes(s)) : codes;
   }, [q, codes]);
+  const matches = all.slice(0, FLAG_PAGE);
   return (
     <div class="flag-picker">
       <input autoFocus placeholder="Search flags (id, de, DE-BB...)" value={q} onInput={(e) => setQ((e.currentTarget as HTMLInputElement).value)} />
@@ -99,6 +106,8 @@ function FlagPicker({ current, onPick }: { current: string; onPick: (code: strin
           </button>
         ))}
       </div>
+      {codes && !matches.length && <p class="flag-more">No flag matches that.</p>}
+      {all.length > FLAG_PAGE && <p class="flag-more">{`Showing ${FLAG_PAGE} of ${all.length}. Search to narrow it down.`}</p>}
     </div>
   );
 }

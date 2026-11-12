@@ -96,6 +96,15 @@ export class SegmentScheduler {
     return new Promise((resolve) => this.idleWaiters.push(resolve));
   }
 
+  /** Drop every queued job and release whoever waits on `whenIdle` (the map is being closed). */
+  clear() {
+    this.jobs.clear();
+    this.heap = [];
+    const waiters = this.idleWaiters;
+    this.idleWaiters = [];
+    waiters.forEach((w) => w());
+  }
+
   private priority(seg: number) {
     const sx = seg % this.cols, sy = (seg - sx) / this.cols;
     const cx = (sx + 0.5) * SEGMENT, cy = (sy + 0.5) * SEGMENT;

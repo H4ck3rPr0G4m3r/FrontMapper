@@ -14,7 +14,7 @@ import type { Renderer } from '../render/renderer';
 import type { PointerInfo } from '../ui/editor/EditorCanvas';
 import { newNationId } from '../core/nations';
 import {
-  brushDiameter, busy, canRedo, canUndo, nations, paint, raiseAmount, revision, selectedNation, selection, spacePan, textureOpts, tool,
+  brushDiameter, busy, canRedo, canUndo, nations, paint, raiseAmount, revision, selectedNation, selection, spacePan, textureOpts, tool, zoom,
 } from './store';
 
 const FOOTPRINT_TOOLS = new Set(['brush', 'raise', 'smooth', 'texture']);
@@ -44,6 +44,7 @@ export class EditorController {
   attach(r: Renderer, o: Overlay) {
     this.renderer = r;
     this.overlay = o;
+    r.onCamera = (z) => (zoom.value = z);
     o.add((ctx) => this.drawSelection(ctx));
     o.add((ctx) => this.drawNations(ctx));
     o.add((ctx) => this.drawCursor(ctx));
@@ -74,8 +75,10 @@ export class EditorController {
     }
     if (t === 'spawn') {
       const hit = this.nationAt(p);
+      this.dragNation = null;
       if (hit) {
         selectedNation.value = hit;
+        this.dragNation = hit;
       } else if (inMap(g, c)) {
         const id = newNationId();
         const list = nations.value;
@@ -83,9 +86,9 @@ export class EditorController {
         while (list.some((n) => n.name === `Nation ${k}`)) k++;
         nations.value = [...list, { id, name: `Nation ${k}`, x: c.x, y: c.y, flag: '', source: 'custom' }];
         selectedNation.value = id;
+        this.dragNation = id;
       }
-      this.dragNation = selectedNation.value;
-      this.onNationPicked?.();
+      if (this.dragNation) this.onNationPicked?.();
       return;
     }
     if (!inMap(g, c)) return;
@@ -171,6 +174,16 @@ export class EditorController {
       }
     }
     return best;
+  }
+
+  /** Abandon whatever the pointer was doing (pointer cancelled, window lost focus). */
+  cancelPointer() {
+    this.dragNation = null;
+    this.selectStart = null;
+    if (this.stroke) {
+      this.stroke = null;
+      this.commit();
+    }
   }
 
   /** Centre the camera on a nation without changing zoom (unless zoomed far out). */
