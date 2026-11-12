@@ -23,6 +23,9 @@ const GROUPS: Item[][] = [
   [{ id: 'spawn', icon: 'ph-flag', label: 'Nation spawn', key: 'N' }],
 ];
 
+/** Icon and label per tool, for other parts of the UI that name the active tool. */
+export const TOOL_INFO = Object.fromEntries(GROUPS.flat().map((t) => [t.id, t])) as Record<Tool, Item>;
+
 export const TOOL_KEYS: Record<string, Tool> = Object.fromEntries(GROUPS.flat().map((t) => [t.key.toLowerCase(), t.id]));
 
 export function ToolRail() {

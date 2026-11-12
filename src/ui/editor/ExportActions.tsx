@@ -19,7 +19,7 @@ export function ExportActions({ controller }: { controller: EditorController }) 
     <div class="export-actions">
       <button class="btn" onClick={() => saveProjectFile(controller)} title="Download a .frontmap project file">
         <i aria-hidden="true" class="ph ph-floppy-disk" />
-        Save
+        <span class="btn-label">Save</span>
       </button>
       <button class="btn primary" onClick={onExport} disabled={st.phase === 'waiting' || st.phase === 'exporting'}>
         <i aria-hidden="true" class="ph ph-export" />
@@ -27,8 +27,9 @@ export function ExportActions({ controller }: { controller: EditorController }) 
       </button>
       {st.phase === 'error' && (
         <div class="export-error" role="alert">
+          <i aria-hidden="true" class="ph-bold ph-warning" />
           <span>{st.message}</span>
-          <button class="icon-btn" aria-label="Dismiss" onClick={() => (exportState.value = { phase: 'idle' })}>
+          <button class="icon-btn sm" aria-label="Dismiss" onClick={() => (exportState.value = { phase: 'idle' })}>
             <i aria-hidden="true" class="ph ph-x" />
           </button>
         </div>

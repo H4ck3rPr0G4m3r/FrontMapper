@@ -45,6 +45,8 @@ test.describe('segment renderer', () => {
 test('a 10000x5000 map uses textures no larger than 256', async ({ page }) => {
   await page.goto('/?fixture=huge');
   await page.waitForFunction(() => (window as any).__fm?.ready, null, { timeout: 20_000 });
+  // The first segment uploads a frame or two after the renderer is ready.
+  await page.waitForFunction(() => (window as any).__fm.maxTextureDim() > 0);
   const dim = await page.evaluate(() => (window as any).__fm.maxTextureDim());
   expect(dim).toBeLessThanOrEqual(256);
   expect(dim).toBeGreaterThan(0);

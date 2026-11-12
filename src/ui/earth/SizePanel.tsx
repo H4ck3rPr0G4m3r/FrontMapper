@@ -1,13 +1,19 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { kmPerPx } from '../../earth/projection';
 import { formatCount, sizeTier } from '../../core/size';
 import { curve, frameSize, includeOutliers, linked, outliers, recomputeFrame, setFrameSide } from '../../state/earthState';
 
 function SideInput({ label, value, onCommit }: { label: string; value: number; onCommit: (v: number) => void }) {
   const [text, setText] = useState(String(value));
-  useEffect(() => setText(String(value)), [value]);
-  const commit = () => {
-    const v = Number(text);
+  // Follow outside changes during render. An effect would also fire after mount and wipe what was just typed.
+  const [seen, setSeen] = useState(value);
+  if (seen !== value) {
+    setSeen(value);
+    setText(String(value));
+  }
+  // Reads the field itself, not the state: Enter can arrive before the last keystroke has re-rendered.
+  const commit = (el: HTMLInputElement) => {
+    const v = Number(el.value);
     if (Number.isFinite(v) && v >= 4 && v !== value) onCommit(v);
     else setText(String(value));
   };
@@ -21,8 +27,8 @@ function SideInput({ label, value, onCommit }: { label: string; value: number; o
         aria-label={label}
         value={text}
         onInput={(e) => setText((e.currentTarget as HTMLInputElement).value)}
-        onBlur={commit}
-        onKeyDown={(e) => e.key === 'Enter' && commit()}
+        onBlur={(e) => commit(e.currentTarget as HTMLInputElement)}
+        onKeyDown={(e) => e.key === 'Enter' && commit(e.currentTarget as HTMLInputElement)}
       />
     </label>
   );
@@ -63,7 +69,7 @@ export function SizePanel() {
         {out.length > 0 && (
           <div class="outliers">
             <span>{includeOutliers.value ? `Including ${out.length} far-off ${out.length === 1 ? 'part' : 'parts'}` : `${out.length} far-off ${out.length === 1 ? 'part' : 'parts'} not included`}</span>
-            <button class="btn" onClick={() => { includeOutliers.value = !includeOutliers.value; void recomputeFrame(); }}>
+            <button class="btn sm" onClick={() => { includeOutliers.value = !includeOutliers.value; void recomputeFrame(); }}>
               {includeOutliers.value ? 'Leave out' : 'Include'}
             </button>
           </div>

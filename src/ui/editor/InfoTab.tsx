@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { sizeProblem } from '../../core/size';
 import { CATEGORIES, deriveIds, THEMES, type MapMeta } from '../../core/info';
 import { cropTo, infoErrors, resizeTo } from '../../state/mapOps';
 import { meta, project, selection } from '../../state/store';
@@ -90,20 +91,29 @@ function MapSize() {
   const p = project.value;
   const [w, setW] = useState(p?.grid.width ?? 0);
   const [h, setH] = useState(p?.grid.height ?? 0);
+  // Crop and resize replace the grid; show its real size again.
+  const [seen, setSeen] = useState(p?.grid);
+  if (p && seen !== p.grid) {
+    setSeen(p.grid);
+    setW(p.grid.width);
+    setH(p.grid.height);
+  }
   if (!p) return null;
   const sel = selection.value;
   const changed = w !== p.grid.width || h !== p.grid.height;
+  const problem = changed ? sizeProblem(w, h) : null;
   return (
     <section class="grp">
       <h4>Map size</h4>
       <div class="size-row">
         <input type="number" step={4} min={4} value={w} aria-label="Width" onInput={(e) => setW(+(e.currentTarget as HTMLInputElement).value)} />
-        <span>×</span>
+        <i aria-hidden="true" class="ph ph-x" style={{ fontSize: 10 }} />
         <input type="number" step={4} min={4} value={h} aria-label="Height" onInput={(e) => setH(+(e.currentTarget as HTMLInputElement).value)} />
-        <button class="btn" disabled={!changed || w < 4 || h < 4} onClick={() => resizeTo(w, h)}>Resize</button>
+        <button class="btn" disabled={!changed || !!problem} onClick={() => resizeTo(w, h)}>Resize</button>
       </div>
+      {problem && <span class="field-error">{problem}</span>}
       {sel && (
-        <button class="btn" style={{ marginTop: 6 }} onClick={() => cropTo(sel)}>
+        <button class="btn grp-action" onClick={() => cropTo(sel)}>
           <i aria-hidden="true" class="ph ph-crop" />
           {`Crop to selection (${sel.w - (sel.w % 4)} × ${sel.h - (sel.h % 4)})`}
         </button>

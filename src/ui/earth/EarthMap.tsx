@@ -35,18 +35,28 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
     const regions = new Map<string, Layered>();
     let hovered: string | null = null;
     let loaded = false;
+    let disposed = false;
 
     const key = (kind: Kind, id: string) => `${kind}:${id}`;
 
-    const style = (r: Layered): L.PathOptions => {
+    /** What the selection looks like right now; worked out once per restyle, not once per region. */
+    const selState = () => {
       const ids = selectedRegionIds(earthOps.value);
-      const onlyRegions = earthOps.value.every((o) => o.shape.kind === 'region');
-      const any = ids.country.size + ids.province.size > 0;
+      const provinceCountries = new Set<string>();
+      for (const p of ids.province) {
+        const c = regions.get(key('province', p))?.country;
+        if (c) provinceCountries.add(c);
+      }
+      return { ids, provinceCountries, onlyRegions: earthOps.value.every((o) => o.shape.kind === 'region'), any: ids.country.size + ids.province.size > 0 };
+    };
+
+    const style = (r: Layered, st = selState()): L.PathOptions => {
+      const { ids, onlyRegions, any } = st;
       const k = key(r.kind, r.id);
       const hover = k === hovered;
       if (r.kind === 'country') {
         const sel = ids.country.has(r.id);
-        const partly = [...ids.province].some((p) => regions.get(key('province', p))?.country === r.id);
+        const partly = st.provinceCountries.has(r.id);
         if (sel) return { color: '#fff', weight: 2, opacity: 1, fillColor: '#fff', fillOpacity: 0.06 };
         const dim = any && onlyRegions && !partly;
         return {
@@ -60,7 +70,7 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
       const sel = ids.province.has(r.id);
       if (sel) return { color: '#fff', weight: 1.8, opacity: 1, fillColor: '#fff', fillOpacity: 0.08 };
       const parentSelected = ids.country.has(r.country);
-      const anyInCountry = [...ids.province].some((p) => regions.get(key('province', p))?.country === r.country);
+      const anyInCountry = st.provinceCountries.has(r.country);
       return {
         color: '#fff',
         weight: hover ? 1.4 : 0.5,
@@ -70,7 +80,20 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
       };
     };
 
-    const restyle = () => regions.forEach((r) => r.layers.forEach((l) => l.setStyle(style(r))));
+    const restyle = () => {
+      const st = selState();
+      regions.forEach((r) => {
+        const s = style(r, st);
+        r.layers.forEach((l) => l.setStyle(s));
+      });
+    };
+    /** Hover only changes the region under the pointer, so only that one is restyled. */
+    const restyleOne = (k: string | null) => {
+      const r = k ? regions.get(k) : undefined;
+      if (!r) return;
+      const s = style(r);
+      r.layers.forEach((l) => l.setStyle(s));
+    };
 
     const addFeature = (f: Feature<Geometry, CountryProps | ProvinceProps>, kind: Kind, country: string, pane?: string) => {
       const id = f.properties.id;
@@ -83,8 +106,17 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
           coordsToLatLng: (c: number[]) => L.latLng(c[1], c[0] + shift),
           style: () => style(r),
         });
-        layer.on('mouseover', () => { hovered = key(kind, id); restyle(); });
-        layer.on('mouseout', () => { if (hovered === key(kind, id)) hovered = null; restyle(); });
+        layer.on('mouseover', () => {
+          const prev = hovered;
+          hovered = key(kind, id);
+          restyleOne(prev);
+          restyleOne(hovered);
+        });
+        layer.on('mouseout', () => {
+          if (hovered !== key(kind, id)) return;
+          hovered = null;
+          restyleOne(key(kind, id));
+        });
         layer.on('click', (e: L.LeafletMouseEvent) => {
           const tool = earthTool.value;
           if (tool !== kind) return;
@@ -100,6 +132,7 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
     map.createPane('provinces').style.zIndex = '410';
 
     ensureCountries().then((fc) => {
+      if (disposed) return;
       for (const f of fc.features) addFeature(f, 'country', f.properties.id);
       loaded = true;
       restyle();
@@ -111,6 +144,7 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
       if (loadedProvinces.has(a3)) return;
       loadedProvinces.add(a3);
       ensureProvinces(a3).then((fc) => {
+        if (disposed) return;
         for (const f of fc.features) addFeature(f, 'province', a3, 'provinces');
         restyle();
       });
@@ -129,6 +163,7 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
 
     // Drawing tools.
     let drawing: { start: L.LatLng; points: L.LatLng[]; layer: L.Path; mode: 'add' | 'subtract' | 'replace' } | null = null;
+    let lastPos: L.LatLng | null = null;
     const ll = (p: L.LatLng): LonLat => [p.lng, p.lat];
     const modeOf = (e: MouseEvent) => (e.altKey ? 'subtract' : e.shiftKey ? 'add' : 'replace');
     map.on('mousedown', (e: L.LeafletMouseEvent) => {
@@ -138,9 +173,11 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
       const layer = t === 'rect' ? L.rectangle(L.latLngBounds(e.latlng, e.latlng), opts) : t === 'circle' ? L.circle(e.latlng, { ...opts, radius: 1 }) : L.polyline([e.latlng], opts);
       layer.addTo(map);
       drawing = { start: e.latlng, points: [e.latlng], layer, mode: modeOf(e.originalEvent) };
+      lastPos = e.latlng;
     });
     map.on('mousemove', (e: L.LeafletMouseEvent) => {
       if (!drawing) return;
+      lastPos = e.latlng;
       const t = earthTool.value;
       if (t === 'rect') (drawing.layer as L.Rectangle).setBounds(L.latLngBounds(drawing.start, e.latlng));
       else if (t === 'circle') (drawing.layer as L.Circle).setRadius(map.distance(drawing.start, e.latlng));
@@ -149,7 +186,7 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
         (drawing.layer as L.Polyline).setLatLngs(drawing.points);
       }
     });
-    const finish = (e: L.LeafletMouseEvent) => {
+    const finish = (e: { latlng: L.LatLng }) => {
       if (!drawing) return;
       const d = drawing;
       drawing = null;
@@ -165,6 +202,11 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
       if (shape) earthOps.value = addShape(earthOps.value, shape, d.mode);
     };
     map.on('mouseup', finish);
+    // Released outside the map: Leaflet never hears about it, so finish with the last point seen.
+    const finishOutside = () => {
+      if (drawing && lastPos) finish({ latlng: lastPos });
+    };
+    window.addEventListener('mouseup', finishOutside);
 
     // Drawn shapes of the current selection.
     const shapeLayer = L.layerGroup().addTo(map);
@@ -262,6 +304,8 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
     };
 
     return () => {
+      disposed = true;
+      window.removeEventListener('mouseup', finishOutside);
       stop.forEach((s) => s());
       map.remove();
       delete (window as any).__earth;

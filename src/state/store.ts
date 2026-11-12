@@ -41,6 +41,9 @@ export const canRedo = signal(false);
 /** True while the user holds Space (temporary pan). */
 export const spacePan = signal(false);
 
+/** Current editor zoom (screen px per map px), mirrored from the renderer for the UI. */
+export const zoom = signal(1);
+
 /** True while a segmented job (e.g. texture over selection) is still running. */
 export const busy = signal(false);
 

@@ -1,5 +1,5 @@
 import type { ComponentChildren } from 'preact';
-import { signal } from '@preact/signals';
+import { computed, signal } from '@preact/signals';
 import { formatCount, sizeTier, TIERS } from '../../core/size';
 import { analysis, analysisPending } from '../../state/analysis';
 import type { EditorController } from '../../state/controller';
@@ -14,6 +14,20 @@ const showIndex = signal({ islands: 0, lakes: 0 });
 
 const signature = (bodies: Int32Array[]) => bodies.map((b) => `${b[0]}:${b.length}`).join(',');
 
+/** Number of problem rows the Checks tab currently shows (accepted warnings do not count). */
+export const openChecks = computed(() => {
+  const kinds = new Set(currentNationIssues.value.map((i) => i.kind));
+  let n = kinds.size + infoErrors.value.length;
+  const a = analysis.value;
+  if (a) {
+    const islands = a.sim.removedIslands.map((b) => b.cells);
+    const lakes = a.sim.removedLakes.map((b) => b.cells);
+    if (islands.length && accepted.value.islands !== signature(islands)) n++;
+    if (lakes.length && accepted.value.lakes !== signature(lakes)) n++;
+  }
+  return n;
+});
+
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
 interface Props {
@@ -26,7 +40,7 @@ export function ChecksTab({ controller, children }: Props) {
   const a = analysis.value;
   const p = project.value;
   if (!a || !p) {
-    return <p class="empty-note">Checking…</p>;
+    return <p class="empty-note" aria-busy="true">Checking the map…</p>;
   }
   const islands = a.sim.removedIslands.map((b) => b.cells);
   const lakes = a.sim.removedLakes.map((b) => b.cells);
@@ -46,24 +60,24 @@ export function ChecksTab({ controller, children }: Props) {
       <section class="grp" aria-busy={analysisPending.value}>
         <h4>
           Lost on export
-          {analysisPending.value && <span class="pending"> · checking…</span>}
+          {analysisPending.value && <span class="pending">checking…</span>}
         </h4>
         <Issue
           count={islands.length}
           accepted={accepted.value.islands === islandSig}
           text={islands.length ? `${islands.length} ${plural(islands.length, 'island under 30 px gets', 'islands under 30 px get')} deleted` : 'No islands get deleted'}
         >
-          <button class="btn" onClick={() => show('islands', islands)}>Show</button>
-          <button class="btn" onClick={() => controller.growIslands(islands)}>Grow to 30</button>
-          <button class="btn" onClick={() => (accepted.value = { ...accepted.value, islands: islandSig })}>Accept</button>
+          <button class="btn sm" onClick={() => show('islands', islands)}>Show</button>
+          <button class="btn sm" onClick={() => controller.growIslands(islands)}>Grow to 30</button>
+          <button class="btn sm" onClick={() => (accepted.value = { ...accepted.value, islands: islandSig })}>Accept</button>
         </Issue>
         <Issue
           count={lakes.length}
           accepted={accepted.value.lakes === lakeSig}
           text={lakes.length ? `${lakes.length} ${plural(lakes.length, 'lake under 200 px fills', 'lakes under 200 px fill')} in` : 'No lakes fill in'}
         >
-          <button class="btn" onClick={() => show('lakes', lakes)}>Show</button>
-          <button class="btn" onClick={() => (accepted.value = { ...accepted.value, lakes: lakeSig })}>Accept</button>
+          <button class="btn sm" onClick={() => show('lakes', lakes)}>Show</button>
+          <button class="btn sm" onClick={() => (accepted.value = { ...accepted.value, lakes: lakeSig })}>Accept</button>
         </Issue>
       </section>
 

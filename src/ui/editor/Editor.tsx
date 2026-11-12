@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'preact/hooks';
+import { useEffect, useMemo, useRef } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import { AnalysisClient } from '../../state/analysis';
 import { ChecksTab } from './ChecksTab';
@@ -6,13 +6,14 @@ import { NationsTab } from './NationsTab';
 import { InfoTab } from './InfoTab';
 import { ExportActions } from './ExportActions';
 import { AutoSaver } from '../../state/autosave';
-import { currentProjectState } from '../../state/projectIO';
+import { currentProjectState, exportState, saveProjectFile } from '../../state/projectIO';
 import { backToStart } from '../../state/session';
 import { loadFlags } from '../../state/flags';
 import type { Overlay } from '../../render/overlay';
 import type { Renderer } from '../../render/renderer';
 import { EditorController } from '../../state/controller';
-import { brushDiameter, meta, nations, project, revision, selection, spacePan, tool, view } from '../../state/store';
+import { brushDiameter, busy, canRedo, canUndo, meta, nations, project, revision, selection, spacePan, tool, view } from '../../state/store';
+import { ZoomControl } from './ZoomControl';
 import { BottomBar } from './BottomBar';
 import { EditorCanvas } from './EditorCanvas';
 import { SidePanel, sideTab } from './SidePanel';
@@ -28,15 +29,26 @@ interface Props {
 export function Editor({ onReady }: Props) {
   const p = project.value;
   const controller = useMemo(() => (p ? new EditorController(p.grid) : null), [p?.grid]);
+  const saver = useRef<AutoSaver | null>(null);
 
   useEffect(() => {
     if (!controller) return;
     loadFlags();
+    // A new grid (opened, cropped, resized) starts with an empty history and no pending work.
+    canUndo.value = controller.history.canUndo;
+    canRedo.value = controller.history.canRedo;
+    busy.value = false;
+    if (exportState.value.phase === 'error') exportState.value = { phase: 'idle' };
     controller.onNationPicked = () => (sideTab.value = 'nations');
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest('input, textarea, select, [contenteditable]')) return;
       const k = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && k === 's') {
+        e.preventDefault();
+        if (!e.repeat) saveProjectFile(controller);
+        return;
+      }
+      if (target.closest('input, textarea, select, [contenteditable]')) return;
       if ((e.ctrlKey || e.metaKey) && k === 'z') {
         e.preventDefault();
         e.shiftKey ? controller.redo() : controller.undo();
@@ -55,6 +67,9 @@ export function Editor({ onReady }: Props) {
         return;
       }
       if (k === 'escape') selection.value = null;
+      else if (k === '0') controller.renderer?.fit();
+      else if (k === '+' || k === '=') controller.renderer?.zoomBy(1.5);
+      else if (k === '-') controller.renderer?.zoomBy(1 / 1.5);
       else if (k === '[') brushDiameter.value = Math.max(1, brushDiameter.value - (brushDiameter.value > 20 ? 4 : 1));
       else if (k === ']') brushDiameter.value = Math.min(256, brushDiameter.value + (brushDiameter.value >= 20 ? 4 : 1));
       else if (TOOL_KEYS[k]) tool.value = TOOL_KEYS[k];
@@ -68,66 +83,92 @@ export function Editor({ onReady }: Props) {
         controller.updateCursor();
       }
     };
+    // Keys released while another window has focus never reach us.
+    const onBlur = () => {
+      spacePan.value = false;
+      controller.cancelPointer();
+      controller.updateCursor();
+    };
     window.addEventListener('keydown', onKey);
     window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
     const stopView = effect(() => controller.renderer?.setView(view.value));
     const client = new AnalysisClient(controller.grid, () => controller.renderer);
     controller.analysis = client;
     const stopAnalysis = effect(() => client.schedule(revision.value));
-    const saver = new AutoSaver(() => currentProjectState(controller));
-    void saver.flush(); // a new or reopened map shows up in Recent right away
+    const autosaver = new AutoSaver(() => currentProjectState(controller));
+    saver.current = autosaver;
+    void autosaver.flush(); // a new or reopened map shows up in Recent right away
     let first = true;
     const stopSave = effect(() => {
       revision.value;
       meta.value;
       nations.value;
       if (first) first = false;
-      else saver.schedule();
+      else autosaver.schedule();
     });
-    const flushSave = () => void saver.flush();
+    const flushSave = () => void autosaver.flush();
     window.addEventListener('pagehide', flushSave);
     return () => {
       stopSave();
       window.removeEventListener('pagehide', flushSave);
-      void saver.flush();
-      saver.dispose();
+      void autosaver.flush();
+      autosaver.dispose();
+      saver.current = null;
+      busy.value = false;
+      spacePan.value = false;
       stopAnalysis();
       client.dispose();
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
       stopView();
     };
   }, [controller]);
 
+  const title = meta.value.name.trim() || 'Untitled map';
+  useEffect(() => {
+    document.title = `${title} · FrontMapper`;
+    return () => {
+      document.title = 'FrontMapper';
+    };
+  }, [title]);
+
   if (!p || !controller) return null;
+
+  // Save before leaving: once the project is cleared there is nothing left to snapshot.
+  const goHome = () => {
+    void saver.current?.flush();
+    backToStart();
+  };
 
   const ready = (r: Renderer, o: Overlay) => {
     controller.attach(r, o);
     r.setView(view.value);
-    if (p.camera) {
-      r.camera = { ...p.camera };
-      r.cameraChanged();
-    }
     if (import.meta.env.DEV) installDevHook(controller, r);
     onReady?.(controller);
   };
 
   return (
-    <div class="ed">
-      <TopBar onUndo={() => controller.undo()} onRedo={() => controller.redo()} actions={<ExportActions controller={controller} />} onHome={backToStart} />
+    <div class="ed screen-in">
+      <TopBar onUndo={() => controller.undo()} onRedo={() => controller.redo()} actions={<ExportActions controller={controller} />} onHome={goHome} />
       <div class="ed-body">
         <ToolRail />
         <div class="ed-center">
           <EditorCanvas
             key={gridKey(p.grid)}
             grid={p.grid}
+            initialCamera={p.camera}
             onReady={ready}
             wantsPan={controller.wantsPan}
             onDown={controller.onDown}
             onMove={controller.onMove}
             onUp={controller.onUp}
             onLeave={controller.onLeave}
-          />
+            onCancel={() => controller.cancelPointer()}
+          >
+            <ZoomControl controller={controller} />
+          </EditorCanvas>
           <BottomBar onTextureSelection={() => controller.textureSelection()} />
         </div>
         <SidePanel

@@ -60,3 +60,17 @@ describe('SegmentScheduler', () => {
     await expect(s.whenIdle()).resolves.toBeUndefined();
   });
 });
+
+describe('SegmentScheduler.clear', () => {
+  it('drops queued jobs and releases whenIdle waiters', async () => {
+    const s = new SegmentScheduler(1024, 1024);
+    let ran = 0;
+    s.enqueue('x', 0, () => ran++);
+    const idle = s.whenIdle();
+    s.clear();
+    await idle;
+    s.pump();
+    expect(ran).toBe(0);
+    expect(s.pending).toBe(0);
+  });
+});

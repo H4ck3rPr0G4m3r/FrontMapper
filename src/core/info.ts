@@ -82,14 +82,23 @@ const FIELD: Record<string, string> = {
 /** Human-readable schema errors; empty when valid. */
 export function validateInfo(info: object): string[] {
   if (validate(info)) return [];
-  return (validate.errors ?? []).map((e) => {
+  const nations = (info as { nations?: { name?: string }[] }).nations ?? [];
+  const out = (validate.errors ?? []).map((e) => {
     const path = e.instancePath || '';
+    const nation = /^\/nations\/(\d+)\/(\w+)/.exec(path);
+    if (nation) {
+      const who = nations[+nation[1]]?.name?.trim() ? `Nation "${nations[+nation[1]].name!.trim()}"` : `Nation ${+nation[1] + 1}`;
+      if (nation[2] === 'name') return `${who}: needs a name`;
+      if (nation[2] === 'coordinates') return `${who}: is outside the map`;
+      return `${who}: ${nation[2]} ${e.message}`;
+    }
     const field = FIELD[path] ?? (path ? path.slice(1).replace(/\//g, ' ') : 'info.json');
     if (e.keyword === 'required') return `${field}: missing ${(e.params as { missingProperty: string }).missingProperty}`;
     if (path === '/categories' && e.keyword === 'minItems') return 'Categories: pick at least one';
     if (path === '/name' && e.keyword === 'minLength') return 'Map name: required';
     return `${field}: ${e.message}`;
   });
+  return [...new Set(out)];
 }
 
 const snap4 = (v: number) => Math.max(4, Math.floor(v / 4) * 4);
