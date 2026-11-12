@@ -1,9 +1,11 @@
 import { useEffect, useMemo } from 'preact/hooks';
 import { effect } from '@preact/signals';
+import { AnalysisClient } from '../../state/analysis';
+import { ChecksTab } from './ChecksTab';
 import type { Overlay } from '../../render/overlay';
 import type { Renderer } from '../../render/renderer';
 import { EditorController } from '../../state/controller';
-import { brushDiameter, project, selection, spacePan, tool, view } from '../../state/store';
+import { brushDiameter, project, revision, selection, spacePan, tool, view } from '../../state/store';
 import { BottomBar } from './BottomBar';
 import { EditorCanvas } from './EditorCanvas';
 import { SidePanel } from './SidePanel';
@@ -60,7 +62,12 @@ export function Editor({ onReady }: Props) {
     window.addEventListener('keydown', onKey);
     window.addEventListener('keyup', onKeyUp);
     const stopView = effect(() => controller.renderer?.setView(view.value));
+    const client = new AnalysisClient(controller.grid, () => controller.renderer);
+    controller.analysis = client;
+    const stopAnalysis = effect(() => client.schedule(revision.value));
     return () => {
+      stopAnalysis();
+      client.dispose();
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKeyUp);
       stopView();
@@ -95,7 +102,7 @@ export function Editor({ onReady }: Props) {
         </div>
         <SidePanel
           panes={{
-            checks: <p class="empty-note">Checks appear here after the map is analysed.</p>,
+            checks: <ChecksTab controller={controller} />,
             nations: <p class="empty-note">No nations yet. Use the spawn tool to place one.</p>,
             info: <p class="empty-note">Map details will appear here.</p>,
           }}

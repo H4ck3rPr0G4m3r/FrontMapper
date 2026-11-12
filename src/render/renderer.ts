@@ -31,6 +31,7 @@ export class Renderer {
   private main: Layer | null = null;
   private exp: Layer | null = null;
   private removed: Uint8Array | null = null;
+  private removedCells: number[] = [];
   private view: ViewMode = 'game';
   private dirty = true;
   private raf = 0;
@@ -63,6 +64,7 @@ export class Renderer {
     this.disposeLayer(this.exp);
     this.exp = null;
     this.removed = null;
+    this.removedCells = [];
     this.main = this.makeLayer(g);
     this.scheduler = new SegmentScheduler(g.width, g.height);
     this.fit();
@@ -73,17 +75,29 @@ export class Renderer {
   setExportSim(sim: ExportSimulation | null) {
     const g = this.main?.grid;
     if (!g) return;
-    this.removed = null;
+    const cols = segmentCols(g.width);
+    const changed = new Set<number>();
+    const segOf = (c: number) => Math.floor(c / g.width / SEGMENT) * cols + Math.floor((c % g.width) / SEGMENT);
+    const prev = this.removedCells;
+    for (const c of prev) changed.add(segOf(c));
     this.disposeLayer(this.exp);
     this.exp = null;
+    this.removed = null;
+    this.removedCells = [];
     if (sim) {
       const removed = new Uint8Array(g.width * g.height);
-      for (const b of sim.removedIslands) for (const c of b.cells) removed[c] = 1;
-      for (const b of sim.removedLakes) for (const c of b.cells) removed[c] = 1;
+      for (const b of [...sim.removedIslands, ...sim.removedLakes])
+        for (const c of b.cells) {
+          removed[c] = 1;
+          this.removedCells.push(c);
+          changed.add(segOf(c));
+        }
       this.removed = removed;
       this.exp = this.makeLayer(sim.grid);
     }
-    this.enqueueAll();
+    // Only segments whose red marks changed need re-uploading; the export layer is rebuilt lazily.
+    for (const seg of changed) this.enqueueSeg(this.main!, seg, 'main');
+    if (this.view === 'export') this.enqueueAll();
   }
 
   setView(v: ViewMode) {
@@ -182,12 +196,13 @@ export class Renderer {
     for (const t of l.textures) if (t) this.gl.deleteTexture(t);
   }
 
+  /** Upload every segment that has no texture yet (main layer, and the export layer in export view). */
   private enqueueAll() {
     const g = this.main?.grid;
     if (!g || !this.scheduler) return;
     for (const seg of segmentsCovering(g.width, g.height, { x: 0, y: 0, w: g.width, h: g.height })) {
-      this.enqueueSeg(this.main!, seg, 'main');
-      if (this.exp && this.view === 'export') this.enqueueSeg(this.exp, seg, 'export');
+      if (!this.main!.textures[seg]) this.enqueueSeg(this.main!, seg, 'main');
+      if (this.exp && this.view === 'export' && !this.exp.textures[seg]) this.enqueueSeg(this.exp, seg, 'export');
     }
   }
 

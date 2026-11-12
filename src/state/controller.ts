@@ -6,7 +6,9 @@ import { brushFootprint, linePoints, paintStroke } from '../core/tools/brush';
 import { floodFill, pickAt } from '../core/tools/fill';
 import { raiseAt, smoothAt } from '../core/tools/sculpt';
 import { textureAt, textureRect } from '../core/tools/texture';
+import { growIsland } from '../core/tools/grow';
 import type { Overlay } from '../render/overlay';
+import type { AnalysisClient } from './analysis';
 import type { Renderer } from '../render/renderer';
 import type { PointerInfo } from '../ui/editor/EditorCanvas';
 import {
@@ -20,6 +22,8 @@ const FOOTPRINT_TOOLS = new Set(['brush', 'raise', 'smooth', 'texture']);
  */
 export class EditorController {
   readonly history: History;
+  /** Set by the editor; runs export analysis off-thread. */
+  analysis: AnalysisClient | null = null;
   renderer: Renderer | null = null;
   overlay: Overlay | null = null;
   /** Cells of the brush outline last drawn (dev/test hook). */
@@ -131,6 +135,35 @@ export class EditorController {
     if (busy.value) return;
     this.invalidateSegs(this.history.redo());
     this.afterChange();
+  }
+
+  /** Grow every given island to the generator's minimum size, as one undo step. */
+  growIslands(bodies: Int32Array[]) {
+    if (busy.value || !bodies.length) return;
+    this.history.begin('Grow islands');
+    for (const cells of bodies) this.invalidate(growIsland(this.grid, this.history, cells));
+    this.commit();
+  }
+
+  /** Centre and zoom the camera on a set of cells. */
+  focusCells(cells: Int32Array) {
+    const r = this.renderer;
+    if (!r || !cells.length) return;
+    const w = this.grid.width;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of cells) {
+      const x = c % w, y = (c - x) / w;
+      x0 = Math.min(x0, x); x1 = Math.max(x1, x);
+      y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    }
+    const span = Math.max(x1 - x0 + 1, y1 - y0 + 1, 24);
+    const canvas = r.canvas;
+    r.camera = {
+      x: (x0 + x1 + 1) / 2,
+      y: (y0 + y1 + 1) / 2,
+      zoom: Math.min(32, Math.min(canvas.clientWidth, canvas.clientHeight) / (span * 3)),
+    };
+    r.cameraChanged();
   }
 
   /** Texture over the current selection, segment by segment, nearest the view first. */

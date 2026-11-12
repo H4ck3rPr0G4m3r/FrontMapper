@@ -49,3 +49,20 @@
 .pane { padding: 12px; display: flex; flex-direction: column; gap: 16px; overflow: auto; min-height: 0; }
 .grp h4 { margin: 0 0 7px; font-size: 11px; color: var(--dim); font-weight: 500; }
 .empty-note { color: var(--dim); font-size: 11px; line-height: 1.5; }
+
+/* Checks */
+.pending { color: var(--dim); font-weight: 400; }
+.issue { margin-bottom: 10px; font-size: 12px; }
+.issue p { margin: 0 0 6px; display: flex; gap: 7px; align-items: baseline; }
+.issue .sq { width: 8px; height: 8px; flex: none; background: var(--warn); transform: translateY(-1px); }
+.issue .row { display: flex; gap: 4px; flex-wrap: wrap; padding-left: 15px; }
+.issue .row .btn { padding: 2px 8px; }
+.issue.ok, .issue.accepted { display: flex; gap: 7px; align-items: center; color: var(--dim); }
+.issue.ok i, .issue.accepted i { color: var(--txt); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-size: 11px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; text-align: right; font-family: var(--mono); }
+.tiers { display: flex; gap: 2px; margin-top: 9px; font-size: 10px; color: var(--dim); }
+.tiers div { flex: 1; padding-top: 4px; border-top: 3px solid var(--line); }
+.tiers div.on { border-top-color: var(--sel); color: var(--txt); font-weight: 600; }
+.note { margin: 8px 0 0; font-size: 11px; color: var(--dim); }
