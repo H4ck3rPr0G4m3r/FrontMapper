@@ -19,16 +19,16 @@ export function TopBar({ onUndo, onRedo, actions }: Props) {
   const p = project.value;
   return (
     <header class="ed-top">
-      <i class="ph-bold ph-map-trifold" style={{ fontSize: 16 }} />
+      <i aria-hidden="true" class="ph-bold ph-map-trifold" style={{ fontSize: 16 }} />
       <span class="ed-title">
         {meta.value.name.trim() || 'Untitled map'}
         {p && <small>{`${p.grid.width} × ${p.grid.height}`}</small>}
       </span>
       <button class="icon-btn" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo.value} onClick={onUndo}>
-        <i class="ph ph-arrow-counter-clockwise" />
+        <i aria-hidden="true" class="ph ph-arrow-counter-clockwise" />
       </button>
       <button class="icon-btn" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!canRedo.value} onClick={onRedo}>
-        <i class="ph ph-arrow-clockwise" />
+        <i aria-hidden="true" class="ph ph-arrow-clockwise" />
       </button>
       <div class="grow" />
       <div class="seg" role="group" aria-label="View">

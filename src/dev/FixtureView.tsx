@@ -11,7 +11,7 @@ export function FixtureView({ name, editor }: { name: string; editor?: boolean }
   const grid = useMemo(() => buildFixture(name), [name]);
   if (editor && grid) {
     if (!project.value) {
-      project.value = { grid, name: `Fixture ${name}` };
+      project.value = { id: `fixture-${name}`, grid };
       meta.value = { name: `Fixture ${name}`, categories: [] };
     }
     return <Editor />;

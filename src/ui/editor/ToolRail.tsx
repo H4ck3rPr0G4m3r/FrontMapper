@@ -39,7 +39,7 @@ export function ToolRail() {
               aria-pressed={tool.value === t.id}
               onClick={() => (tool.value = t.id)}
             >
-              <i class={`ph ${t.icon}`} />
+              <i aria-hidden="true" class={`ph ${t.icon}`} />
               <span class="tip">
                 {t.label}
                 <kbd>{t.key}</kbd>

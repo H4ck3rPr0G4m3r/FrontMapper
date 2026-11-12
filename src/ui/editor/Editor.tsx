@@ -4,11 +4,14 @@ import { AnalysisClient } from '../../state/analysis';
 import { ChecksTab } from './ChecksTab';
 import { NationsTab } from './NationsTab';
 import { InfoTab } from './InfoTab';
+import { ExportActions } from './ExportActions';
+import { AutoSaver } from '../../state/autosave';
+import { currentProjectState } from '../../state/projectIO';
 import { loadFlags } from '../../state/flags';
 import type { Overlay } from '../../render/overlay';
 import type { Renderer } from '../../render/renderer';
 import { EditorController } from '../../state/controller';
-import { brushDiameter, project, revision, selection, spacePan, tool, view } from '../../state/store';
+import { brushDiameter, meta, nations, project, revision, selection, spacePan, tool, view } from '../../state/store';
 import { BottomBar } from './BottomBar';
 import { EditorCanvas } from './EditorCanvas';
 import { SidePanel, sideTab } from './SidePanel';
@@ -70,7 +73,22 @@ export function Editor({ onReady }: Props) {
     const client = new AnalysisClient(controller.grid, () => controller.renderer);
     controller.analysis = client;
     const stopAnalysis = effect(() => client.schedule(revision.value));
+    const saver = new AutoSaver(() => currentProjectState(controller));
+    let first = true;
+    const stopSave = effect(() => {
+      revision.value;
+      meta.value;
+      nations.value;
+      if (first) first = false;
+      else saver.schedule();
+    });
+    const flushSave = () => void saver.flush();
+    window.addEventListener('pagehide', flushSave);
     return () => {
+      stopSave();
+      window.removeEventListener('pagehide', flushSave);
+      void saver.flush();
+      saver.dispose();
       stopAnalysis();
       client.dispose();
       window.removeEventListener('keydown', onKey);
@@ -84,13 +102,17 @@ export function Editor({ onReady }: Props) {
   const ready = (r: Renderer, o: Overlay) => {
     controller.attach(r, o);
     r.setView(view.value);
+    if (p.camera) {
+      r.camera = { ...p.camera };
+      r.cameraChanged();
+    }
     if (import.meta.env.DEV) installDevHook(controller, r);
     onReady?.(controller);
   };
 
   return (
     <div class="ed">
-      <TopBar onUndo={() => controller.undo()} onRedo={() => controller.redo()} />
+      <TopBar onUndo={() => controller.undo()} onRedo={() => controller.redo()} actions={<ExportActions controller={controller} />} />
       <div class="ed-body">
         <ToolRail />
         <div class="ed-center">

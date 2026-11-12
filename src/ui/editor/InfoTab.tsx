@@ -104,7 +104,7 @@ function MapSize() {
       </div>
       {sel && (
         <button class="btn" style={{ marginTop: 6 }} onClick={() => cropTo(sel)}>
-          <i class="ph ph-crop" />
+          <i aria-hidden="true" class="ph ph-crop" />
           {`Crop to selection (${sel.w - (sel.w % 4)} × ${sel.h - (sel.h % 4)})`}
         </button>
       )}

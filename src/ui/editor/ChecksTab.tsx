@@ -100,7 +100,7 @@ export function ChecksTab({ controller, children }: Props) {
           </ul>
         ) : (
           <div class="issue ok">
-            <i class="ph ph-check" />
+            <i aria-hidden="true" class="ph ph-check" />
             <span>info.json is valid</span>
           </div>
         )}
@@ -122,7 +122,7 @@ function NationSummary() {
       {!list.length && <p class="empty-note">No nations placed. Players will spawn anywhere.</p>}
       {list.length > 0 && !issues.length && (
         <div class="issue ok">
-          <i class="ph ph-check" />
+          <i aria-hidden="true" class="ph ph-check" />
           <span>{list.length === 1 ? 'The nation looks fine' : `All ${list.length} nations look fine`}</span>
         </div>
       )}
@@ -144,7 +144,7 @@ function Issue(props: { count: number; accepted: boolean; text: string; children
   if (!props.count) {
     return (
       <div class="issue ok">
-        <i class="ph ph-check" />
+        <i aria-hidden="true" class="ph ph-check" />
         <span>{props.text}</span>
       </div>
     );
@@ -152,7 +152,7 @@ function Issue(props: { count: number; accepted: boolean; text: string; children
   if (props.accepted) {
     return (
       <div class="issue accepted">
-        <i class="ph ph-check" />
+        <i aria-hidden="true" class="ph ph-check" />
         <span>{props.text} (accepted)</span>
       </div>
     );

@@ -2,6 +2,8 @@ import { signal } from '@preact/signals';
 import type { MapGrid } from '../core/grid';
 import type { Nation } from '../core/nations';
 import type { MapMeta } from '../core/info';
+import type { EarthSource } from '../core/project';
+import type { SourceId } from '../core/credits';
 import type { Selection } from '../core/selection';
 import type { Paint } from '../core/tools/common';
 import type { TextureOpts } from '../core/tools/texture';
@@ -10,8 +12,13 @@ import type { ViewMode } from '../render/renderer';
 export type Tool = 'pan' | 'select' | 'brush' | 'fill' | 'raise' | 'smooth' | 'texture' | 'eyedropper' | 'spawn';
 
 export interface EditorProject {
+  /** Stable id used for autosave. */
+  id: string;
   grid: MapGrid;
-  name: string;
+  /** Present for maps converted from Earth data (re-framing, credits). */
+  earth?: EarthSource;
+  /** Camera to restore when the project is reopened. */
+  camera?: { x: number; y: number; zoom: number };
 }
 
 /** The map being edited. */
@@ -43,3 +50,6 @@ export const selectedNation = signal<string | null>(null);
 
 /** info.json details of the open map. */
 export const meta = signal<MapMeta>({ name: 'Untitled map', categories: [] });
+
+/** Open data sources used to build the current map (drives CREDITS.md lines). */
+export const sources = signal<SourceId[]>([]);

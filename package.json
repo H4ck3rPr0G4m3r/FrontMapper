@@ -24,6 +24,8 @@
     "@preact/signals": "^2.11.4",
     "ajv": "^8.20.0",
     "fast-png": "^8.0.0",
+    "fflate": "^0.8.3",
+    "idb-keyval": "^6.3.0",
     "preact": "^11.2.0"
   }
 }

@@ -71,7 +71,7 @@ export function BottomBar({ onTextureSelection }: { onTextureSelection: () => vo
           <Slider label="Grain" min={2} max={64} value={textureOpts.value.grain} onInput={(v) => (textureOpts.value = { ...textureOpts.value, grain: v })} />
           {selection.value && (
             <button class="btn" disabled={busy.value} onClick={onTextureSelection}>
-              <i class="ph ph-selection-all" />
+              <i aria-hidden="true" class="ph ph-selection-all" />
               {busy.value ? 'Texturing…' : 'Texture selection'}
             </button>
           )}

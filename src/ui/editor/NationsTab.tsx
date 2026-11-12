@@ -29,7 +29,7 @@ export function NationsTab({ controller }: { controller: EditorController }) {
         )}
         {tool.value !== 'spawn' && (
           <button class="btn" style={{ marginTop: 8 }} onClick={() => (tool.value = 'spawn')}>
-            <i class="ph ph-flag" />
+            <i aria-hidden="true" class="ph ph-flag" />
             Place nations
           </button>
         )}
@@ -46,7 +46,7 @@ function NationRow({ n, controller }: { n: Nation; controller: EditorController 
     <li class={`nation${selected ? ' on' : ''}`}>
       <div class="nation-row" onClick={() => { selectedNation.value = n.id; controller.focusNation(n.id); }}>
         <button class="flag-btn" aria-label={n.flag ? `Flag ${n.flag}` : 'Choose flag'} onClick={(e) => { e.stopPropagation(); setPicking(!picking); }}>
-          {n.flag ? <img src={flagUrl(n.flag)} alt="" /> : <i class="ph ph-flag" />}
+          {n.flag ? <img src={flagUrl(n.flag)} alt="" /> : <i aria-hidden="true" class="ph ph-flag" />}
         </button>
         <input
           class="nation-name"
@@ -57,7 +57,7 @@ function NationRow({ n, controller }: { n: Nation; controller: EditorController 
         />
         {issues && <span class="sq" title={issues.map((i) => ISSUE_TEXT[i.kind]).join('\n')} />}
         <button class="icon-btn" aria-label={`Delete ${n.name}`} onClick={(e) => { e.stopPropagation(); nations.value = nations.value.filter((v) => v.id !== n.id); }}>
-          <i class="ph ph-trash" />
+          <i aria-hidden="true" class="ph ph-trash" />
         </button>
       </div>
       {issues && selected && (
@@ -89,7 +89,7 @@ function FlagPicker({ current, onPick }: { current: string; onPick: (code: strin
       )}
       <div class="flag-grid">
         <button class={!current ? 'on' : ''} onClick={() => onPick('')}>
-          <i class="ph ph-prohibit" />
+          <i aria-hidden="true" class="ph ph-prohibit" />
           <span>None</span>
         </button>
         {matches.map((c) => (
