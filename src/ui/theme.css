@@ -1,0 +1,54 @@
+/* Graphite theme (spec: Visual style). The map supplies the colour; red is only for problems. */
+:root {
+  --app: #1f1f1f;
+  --panel: #2a2a2a;
+  --line: #3a3a3a;
+  --txt: #ececec;
+  --dim: #a0a0a0;
+  --btn: #333333;
+  --sel: #ececec;
+  --selTxt: #1f1f1f;
+  --warn: #ff4f43;
+  --stage: #161616;
+  --r: 4px;
+  --font: ui-sans-serif, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app { height: 100%; margin: 0; }
+
+body {
+  background: var(--app);
+  color: var(--txt);
+  font: 12px/1.4 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+.mono { font-family: var(--mono); }
+
+:focus-visible { outline: 1px solid var(--sel); outline-offset: 1px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--line); background: var(--btn); color: var(--txt);
+  font-size: 11px; padding: 4px 9px; border-radius: var(--r); cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: #4a4a4a; }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .4; cursor: default; transform: none; }
+.btn.primary { background: var(--sel); border-color: var(--sel); color: var(--selTxt); font-weight: 600; }
+.btn i { font-size: 13px; }
+
+input[type=text], input[type=number], textarea, select {
+  background: var(--app); border: 1px solid var(--line); border-radius: var(--r); padding: 4px 6px;
+}
+input[type=range] { accent-color: var(--sel); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
