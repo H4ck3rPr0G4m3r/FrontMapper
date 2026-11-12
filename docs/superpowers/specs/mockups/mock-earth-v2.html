@@ -1,0 +1,185 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<style>
+  :root { --app:#1f1f1f; --panel:#2a2a2a; --line:#3a3a3a; --txt:#ececec; --dim:#a0a0a0; --btn:#333; --sel:#ececec; --selTxt:#1f1f1f; --r:4px; }
+  * { box-sizing:border-box; }
+  .app { background:var(--app); color:var(--txt); border-radius:var(--r); overflow:hidden; border:1px solid var(--line);
+         font:12px/1.35 ui-sans-serif, "Segoe UI", system-ui, sans-serif; }
+  .mono { font-family:ui-monospace, Consolas, monospace; }
+  .top { display:flex; align-items:center; gap:8px; height:40px; padding:0 10px; border-bottom:1px solid var(--line); background:var(--panel); }
+  .search { position:relative; flex:1; max-width:260px; }
+  .search i { position:absolute; left:8px; top:50%; transform:translateY(-50%); color:var(--dim); }
+  .search input { width:100%; background:var(--app); border:1px solid var(--line); color:var(--txt); border-radius:var(--r); padding:5px 8px 5px 26px; font:inherit; }
+  .search input:focus { outline:1px solid var(--sel); }
+  .results { position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); z-index:1000; display:none; }
+  .results div { padding:5px 8px; cursor:pointer; }
+  .results div:hover, .results div.hl { background:var(--btn); }
+  .seg { display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; margin-left:auto; }
+  .seg button { background:none; border:0; color:var(--dim); font:inherit; font-size:11px; padding:4px 8px; cursor:pointer; display:flex; gap:4px; align-items:center; }
+  .seg button + button { border-left:1px solid var(--line); }
+  .seg button.on { background:var(--sel); color:var(--selTxt); }
+  .seg i { font-size:13px; }
+  .body { display:grid; grid-template-columns:minmax(0,1fr) 214px; }
+  #map { height:350px; background:#0b1a26; }
+  .side { border-left:1px solid var(--line); background:var(--panel); padding:10px; display:flex; flex-direction:column; gap:14px; }
+  .grp h4 { margin:0 0 6px; font-size:11px; color:var(--dim); font-weight:500; }
+  .tag { display:inline-flex; align-items:center; gap:5px; background:var(--btn); border:1px solid var(--line); border-radius:var(--r); padding:2px 4px 2px 7px; margin:0 4px 4px 0; }
+  .tag button { background:none; border:0; color:var(--dim); cursor:pointer; padding:0; display:grid; }
+  .empty { color:var(--dim); font-size:11px; }
+  .dims { display:grid; grid-template-columns:1fr auto 1fr; gap:4px; align-items:end; }
+  .dims label { display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--dim); }
+  .dims input { width:100%; background:var(--app); border:1px solid var(--line); color:var(--txt); border-radius:var(--r); padding:4px 6px; font:12px ui-monospace, Consolas, monospace; }
+  .dims input:focus { outline:1px solid var(--sel); }
+  .link { width:24px; height:26px; display:grid; place-items:center; background:none; border:1px solid transparent; border-radius:var(--r); color:var(--dim); cursor:pointer; font-size:14px; }
+  .link.on { color:var(--txt); border-color:var(--line); background:var(--btn); }
+  .row { display:flex; justify-content:space-between; font-size:11px; margin-top:7px; }
+  .row span:first-child { color:var(--dim); }
+  .hint { font-size:10.5px; color:var(--dim); margin-top:5px; }
+  .legend { display:grid; grid-template-columns:12px 1fr; gap:4px 7px; font-size:11px; color:var(--dim); align-items:center; }
+  .legend b { width:12px; height:12px; border-radius:2px; display:block; box-shadow:inset 0 0 0 1px rgba(255,255,255,.2); }
+  .cta { margin-top:auto; width:100%; padding:7px; border:0; border-radius:var(--r); background:var(--sel); color:var(--selTxt); font:600 12px ui-sans-serif, "Segoe UI", system-ui, sans-serif; cursor:pointer; display:flex; justify-content:center; gap:6px; align-items:center; }
+  .cta:disabled { opacity:.4; cursor:default; }
+  .leaflet-container { font:inherit; }
+  .leaflet-control-attribution { font-size:9px; background:rgba(31,31,31,.75)!important; color:#bbb; }
+  .leaflet-control-attribution a { color:#bbb; }
+  .leaflet-bar a { background:var(--panel); color:var(--txt); border-color:var(--line); }
+  .leaflet-bar a:hover { background:var(--btn); }
+  .cap { margin:8px 2px 0; font-size:11px; color:var(--muted-foreground, #8a919c); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="search"><i class="ph ph-magnifying-glass"></i><input id="q" placeholder="Search a country" autocomplete="off"><div class="results" id="res"></div></div>
+    <div class="seg" id="tools">
+      <button class="on" title="Click countries"><i class="ph ph-cursor-click"></i>Country</button>
+      <button title="Square select"><i class="ph ph-selection"></i></button>
+      <button title="Hand draw"><i class="ph ph-lasso"></i></button>
+      <button title="Circle select"><i class="ph ph-circle-dashed"></i></button>
+    </div>
+  </div>
+  <div class="body">
+    <div id="map"></div>
+    <div class="side">
+      <div class="grp"><h4>Selection</h4><div id="tags"><span class="empty">Click a country, Shift+click to add more</span></div></div>
+      <div class="grp">
+        <h4>Map size</h4>
+        <div class="dims">
+          <label>Width<input id="w" type="number" step="4" value="4000"></label>
+          <button class="link" id="lock" title="Keep the frame, change resolution"><i class="ph ph-link-simple"></i></button>
+          <label>Height<input id="h" type="number" step="4" value="0"></label>
+        </div>
+        <div class="hint" id="hint">Unlinked: changing a side grows the frame, scale stays.</div>
+        <div class="row"><span>Scale</span><span class="mono" id="kv">-</span></div>
+        <div class="row"><span>Pixels</span><span class="mono" id="pv">-</span></div>
+      </div>
+      <div class="grp">
+        <h4>Outside the selection</h4>
+        <div class="legend"><b style="background:#000"></b>Land becomes impassable<b style="background:rgb(70,132,180)"></b>Water stays water</div>
+      </div>
+      <button class="cta" id="go" disabled><i class="ph ph-arrow-right"></i>Convert to map</button>
+    </div>
+  </div>
+</div>
+<p class="cap">Prototype v2. Real imagery and borders. Search, clicking countries (Shift+click to add) and the size fields work; the other selection tools and dragging the frame are not wired up.</p>
+<script>
+const $=id=>document.getElementById(id);
+const map = L.map('map', { worldCopyJump:true, zoomSnap:.25, attributionControl:true }).setView([0,115], 2);
+map.attributionControl.setPrefix(false);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom:17, attribution:'Imagery: Esri, Maxar, Earthstar Geographics' }).addTo(map);
+const renderer = L.canvas({ padding:.5, tolerance:2 });
+const P = L.CRS.EPSG3857;
+let layers = new Map(), selected = new Set(), frame = null, W = 4000, scale = 0, linked = false, hovered = null;
+const frameRect = L.rectangle([[0,0],[0,0]], { color:'#fff', weight:1.4, dashArray:'6 4', fill:false, interactive:false, renderer:L.svg() });
+
+function style(id){
+  const sel = selected.has(id), any = selected.size>0;
+  if (sel) return { color:'#fff', weight:2, opacity:1, fillColor:'#fff', fillOpacity:.07 };
+  return { color:'#fff', weight: id===hovered ? 1.6 : .7, opacity: id===hovered ? .95 : .55, fillColor:'#000', fillOpacity: any ? .7 : (id===hovered ? .12 : 0) };
+}
+function restyle(){ layers.forEach((l,id)=>l.setStyle(style(id))); }
+function fitFrame(){
+  const b = L.latLngBounds([]); selected.forEach(id=>b.extend(layers.get(id).getBounds()));
+  if (!b.isValid()) { frame=null; return; }
+  const a = P.project(b.getSouthWest()), c = P.project(b.getNorthEast());
+  const mx=(c.x-a.x)*.04, my=(c.y-a.y)*.06;
+  frame = { x0:a.x-mx, y0:a.y-my, x1:c.x+mx, y1:c.y+my };
+  scale = (frame.x1-frame.x0)/W;
+}
+const r4 = v => Math.max(4, Math.round(v/4)*4);
+function drawFrame(){
+  if (!frame){ frameRect.remove(); return; }
+  frameRect.setBounds([P.unproject(L.point(frame.x0,frame.y0)), P.unproject(L.point(frame.x1,frame.y1))]).addTo(map);
+}
+function numbers(){
+  if (!frame){ $('h').value=''; $('kv').textContent='-'; $('pv').textContent='-'; return; }
+  const Wp = r4((frame.x1-frame.x0)/scale), Hp = r4((frame.y1-frame.y0)/scale);
+  W = Wp; if (document.activeElement!==$('w')) $('w').value=Wp; if (document.activeElement!==$('h')) $('h').value=Hp;
+  const lat = P.unproject(L.point(0,(frame.y0+frame.y1)/2)).lat;
+  $('kv').textContent = (scale*Math.cos(lat*Math.PI/180)/1000).toFixed(2)+' km/px';
+  const px = Wp*Hp/1e6, tier = px<2?'Small':px<10?'Typical':px<25?'Large':'Huge';
+  $('pv').textContent = px.toFixed(2)+'M, '+tier;
+}
+function update(){
+  restyle(); drawFrame(); numbers();
+  const ids=[...selected];
+  $('tags').innerHTML = ids.length ? ids.map(id=>`<span class="tag">${layers.get(id).feature.properties.name}<button data-id="${id}"><i class="ph ph-x"></i></button></span>`).join('') : '<span class="empty">Click a country, Shift+click to add more</span>';
+  document.querySelectorAll('.tag button').forEach(b=>b.onclick=()=>{ selected.delete(b.dataset.id); fitFrame(); update(); });
+  $('go').disabled = !ids.length;
+}
+function pick(id, add, animate){
+  if (!add) selected.clear();
+  if (add && selected.has(id)) selected.delete(id); else selected.add(id);
+  fitFrame(); update();
+  if (frame && !add) map.flyToBounds(frameRect.getBounds(), { padding:[20,20], duration: animate ? .8 : 0, animate:!!animate });
+}
+// size fields
+function setSide(which){
+  if (!frame) return;
+  const v = r4(+$(which).value || 4);
+  if (linked){ // keep frame, change resolution
+    scale = which==='w' ? (frame.x1-frame.x0)/v : (frame.y1-frame.y0)/v;
+  } else {     // keep scale, grow/shrink the frame around its centre
+    if (which==='w'){ const cx=(frame.x0+frame.x1)/2, half=v*scale/2; frame.x0=cx-half; frame.x1=cx+half; }
+    else { const cy=(frame.y0+frame.y1)/2, half=v*scale/2; frame.y0=cy-half; frame.y1=cy+half; }
+  }
+  drawFrame(); numbers();
+}
+$('w').addEventListener('change',()=>setSide('w')); $('h').addEventListener('change',()=>setSide('h'));
+$('w').addEventListener('keydown',e=>{ if(e.key==='Enter') $('w').blur(); }); $('h').addEventListener('keydown',e=>{ if(e.key==='Enter') $('h').blur(); });
+$('lock').onclick=()=>{ linked=!linked; $('lock').classList.toggle('on',linked);
+  $('hint').textContent = linked ? 'Linked: the frame stays, resolution changes.' : 'Unlinked: changing a side grows the frame, scale stays.'; };
+
+fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json').then(r=>r.json()).then(topo=>{
+  const fc = topojson.feature(topo, topo.objects.countries);
+  fc.features.filter(f=>f.geometry && !['Antarctica','Fiji'].includes(f.properties.name)).forEach(f=>{
+    const id = String(f.id ?? f.properties.name);
+    const l = L.geoJSON(f, { renderer, style:()=>style(id) });
+    l.feature = f;
+    l.on('click', e=>pick(id, e.originalEvent.shiftKey, true));
+    l.on('mouseover', ()=>{ hovered=id; l.setStyle(style(id)); map.getContainer().style.cursor='pointer'; });
+    l.on('mouseout', ()=>{ hovered=null; l.setStyle(style(id)); map.getContainer().style.cursor=''; });
+    l.addTo(map); layers.set(id, l);
+  });
+  const indo=[...layers].find(([,l])=>l.feature.properties.name==='Indonesia');
+  if (indo){ $('q').value='Indonesia'; pick(indo[0], false, false); }
+});
+// search
+let hl=0, hits=[];
+function render(){ $('res').innerHTML=hits.map(([id,l],i)=>`<div class="${i===hl?'hl':''}" data-i="${i}">${l.feature.properties.name}</div>`).join(''); $('res').style.display=hits.length?'block':'none';
+  document.querySelectorAll('#res div').forEach(d=>d.onmousedown=()=>choose(hits[+d.dataset.i])); }
+function choose([id,l]){ $('q').value=l.feature.properties.name; hits=[]; render(); pick(id,false,true); }
+$('q').oninput=()=>{ const s=$('q').value.trim().toLowerCase(); hl=0;
+  hits = s ? [...layers].filter(([,l])=>l.feature.properties.name.toLowerCase().includes(s)).sort((a,b)=>a[1].feature.properties.name.toLowerCase().indexOf(s)-b[1].feature.properties.name.toLowerCase().indexOf(s)).slice(0,6) : []; render(); };
+$('q').onkeydown=e=>{ if(e.key==='ArrowDown'){hl=Math.min(hl+1,hits.length-1);render();e.preventDefault();} if(e.key==='ArrowUp'){hl=Math.max(hl-1,0);render();e.preventDefault();} if(e.key==='Enter'&&hits[hl]) choose(hits[hl]); };
+$('q').onblur=()=>setTimeout(()=>{hits=[];render();},100);
+document.querySelectorAll('#tools button').forEach(b=>b.onclick=()=>{ document.querySelectorAll('#tools button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); });
+</script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<style>
+  .app[data-theme="graphite"] { --app:#0a1628; --panel:#0e1d33; --line:rgba(255,255,255,.1); --txt:#e8eef7; --dim:#8ea3bf; --btn:rgba(255,255,255,.06);
+     --sel:#0084d1; --selTxt:#fff; --cta:#e06c12; --ctaTxt:#fff; --warn:#ff5a4e; --stage:#06101e; --pill:#0a1628; --pillTxt:#e8eef7; --pin:#e06c12; --r:6px; }
+  .app[data-theme="graphite"] { --app:#1f1f1f; --panel:#2a2a2a; --line:#3a3a3a; --txt:#ececec; --dim:#a0a0a0; --btn:#333;
+     --sel:#ececec; --selTxt:#1f1f1f; --cta:#ececec; --ctaTxt:#1f1f1f; --warn:#ff4f43; --stage:#161616; --pill:#ececec; --pillTxt:#1f1f1f; --pin:#ececec; --r:4px; }
+  .app[data-theme="forest"] { --app:#18221c; --panel:#1f2b24; --line:#33443a; --txt:#e6e9df; --dim:#97a598; --btn:#26342c;
+     --sel:#d9a441; --selTxt:#18221c; --cta:#d9a441; --ctaTxt:#18221c; --warn:#ff5a4e; --stage:#111813; --pill:#18221c; --pillTxt:#e6e9df; --pin:#d9a441; --r:2px; }
+  * { box-sizing:border-box; }
+  .pick { display:flex; gap:6px; margin-bottom:8px; }
+  .pick button { font:600 12px ui-sans-serif, "Segoe UI", system-ui, sans-serif; padding:6px 12px; border-radius:var(--radius, 6px); cursor:pointer;
+     border:1px solid var(--border); background:transparent; color:var(--foreground); }
+  .pick button.on { background:var(--foreground); color:var(--background); }
+  .app { background:var(--app); color:var(--txt); border-radius:var(--r); overflow:hidden; border:1px solid var(--line);
+         font:12px/1.35 ui-sans-serif, "Segoe UI", system-ui, sans-serif; transition:background .2s; }
+  .mono { font-family:ui-monospace, Consolas, monospace; }
+  .top { display:flex; align-items:center; gap:8px; height:40px; padding:0 10px; border-bottom:1px solid var(--line); background:var(--panel); }
+  .title { font-weight:650; font-size:13px; }
+  .title small { color:var(--dim); font-weight:400; margin-left:6px; font-size:11px; }
+  .seg { display:flex; margin-left:auto; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
+  .seg button { background:none; border:0; color:var(--dim); font:inherit; font-size:11px; padding:4px 8px; cursor:pointer; }
+  .seg button + button { border-left:1px solid var(--line); }
+  .seg button.on { background:var(--sel); color:var(--selTxt); }
+  .btn { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line); background:var(--btn); color:var(--txt);
+         font:inherit; font-size:11px; padding:4px 9px; border-radius:var(--r); cursor:pointer; white-space:nowrap; }
+  .btn:active { transform:translateY(1px); }
+  .btn.cta { background:var(--cta); border-color:var(--cta); color:var(--ctaTxt); font-weight:600; }
+  .btn i { font-size:13px; }
+  .body { display:grid; grid-template-columns:40px minmax(0,1fr) 214px; }
+  .tools { border-right:1px solid var(--line); display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 0; background:var(--panel); }
+  .tool { width:30px; height:30px; display:grid; place-items:center; border-radius:var(--r); color:var(--dim); font-size:17px; cursor:pointer; }
+  .tool:hover { background:var(--btn); color:var(--txt); }
+  .tool.on { background:var(--sel); color:var(--selTxt); }
+  .sep { width:20px; height:1px; background:var(--line); margin:4px 0; }
+  .mid { display:flex; flex-direction:column; min-width:0; }
+  .stage { background:var(--stage); flex:1; display:flex; align-items:center; }
+  .stage > div { position:relative; width:100%; }
+  canvas { display:block; width:100%; image-rendering:pixelated; cursor:none; }
+  #overlay { position:absolute; inset:0; pointer-events:none; }
+  .bottom { display:flex; align-items:center; gap:6px; padding:6px 8px; border-top:1px solid var(--line); background:var(--panel); }
+  .sw { display:flex; gap:1px; }
+  .chip { display:flex; align-items:center; gap:5px; padding:3px 6px 3px 4px; border-radius:var(--r); border:1px solid transparent; color:var(--dim); font-size:11px; cursor:pointer; }
+  .chip.on { border-color:var(--sel); color:var(--txt); }
+  .chip b { width:13px; height:13px; border-radius:2px; display:block; box-shadow:inset 0 0 0 1px rgba(255,255,255,.18); }
+  .size { margin-left:auto; display:flex; align-items:center; gap:6px; color:var(--dim); font-size:11px; }
+  .size input { width:46px; accent-color:var(--sel); }
+  .side { border-left:1px solid var(--line); background:var(--panel); display:flex; flex-direction:column; }
+  .tabs { display:flex; border-bottom:1px solid var(--line); }
+  .tabs div { flex:1; text-align:center; padding:8px 0; color:var(--dim); font-size:11px; cursor:pointer; }
+  .tabs div.on { color:var(--txt); font-weight:600; box-shadow:inset 0 -2px 0 var(--sel); }
+  .pane { padding:10px; display:flex; flex-direction:column; gap:14px; }
+  .grp h4 { margin:0 0 6px; font-size:11px; color:var(--dim); font-weight:500; }
+  .issue { margin-bottom:9px; }
+  .issue p { margin:0 0 5px; display:flex; gap:6px; align-items:baseline; }
+  .issue p::before { content:""; width:8px; height:8px; flex:none; background:var(--warn); transform:translateY(-1px); }
+  .issue p strong { color:var(--warn); }
+  .issue .row { display:flex; gap:4px; flex-wrap:wrap; padding-left:14px; }
+  .issue .btn { padding:2px 7px; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:3px 10px; font-size:11px; }
+  .kv span:nth-child(odd) { color:var(--dim); }
+  .kv span:nth-child(even) { text-align:right; }
+  .scale { display:flex; margin-top:8px; font-size:10px; color:var(--dim); }
+  .scale div { flex:1; padding-top:4px; border-top:3px solid var(--line); }
+  .scale div + div { margin-left:2px; }
+  .scale div.on { border-top-color:var(--sel); color:var(--txt); font-weight:600; }
+  .note { font-size:11px; color:var(--dim); }
+  .cap { margin:8px 2px 0; font-size:11px; color:var(--muted-foreground, #8a919c); }
+</style>
+</head>
+<body>
+<div class="app" id="app" data-theme="graphite">
+  <div class="top">
+    <i class="ph-bold ph-map-trifold" style="font-size:16px"></i>
+    <span class="title">Indonesia<small class="mono">2320 × 1360</small></span>
+    <div class="seg" id="view">
+      <button class="on" data-v="game">Game</button>
+      <button data-v="elev">Elevation</button>
+      <button data-v="export">After export</button>
+    </div>
+    <button class="btn"><i class="ph ph-globe-hemisphere-east"></i>Earth</button>
+    <button class="btn cta"><i class="ph ph-export"></i>Export</button>
+  </div>
+  <div class="body">
+    <div class="tools">
+      <div class="tool" title="Pan"><i class="ph ph-hand"></i></div>
+      <div class="tool" title="Select"><i class="ph ph-selection"></i></div>
+      <div class="sep"></div>
+      <div class="tool on" title="Brush"><i class="ph ph-paint-brush"></i></div>
+      <div class="tool" title="Fill"><i class="ph ph-paint-bucket"></i></div>
+      <div class="tool" title="Raise / lower"><i class="ph ph-mountains"></i></div>
+      <div class="tool" title="Smooth"><i class="ph ph-wave-sine"></i></div>
+      <div class="tool" title="Texture (noise)"><i class="ph ph-dots-nine"></i></div>
+      <div class="tool" title="Pick terrain"><i class="ph ph-eyedropper"></i></div>
+      <div class="sep"></div>
+      <div class="tool" title="Nation spawn"><i class="ph ph-flag"></i></div>
+    </div>
+    <div class="mid">
+      <div class="stage"><div>
+        <canvas id="c"></canvas>
+        <canvas id="overlay"></canvas>
+      </div></div>
+      <div class="bottom">
+        <div class="sw" id="sw"></div>
+        <div class="size">Size <input type="range" min="1" max="40" value="12"><span class="mono">12</span></div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="tabs"><div class="on">Checks</div><div>Nations</div><div>Info</div></div>
+      <div class="pane">
+        <div class="grp">
+          <h4>Lost on export</h4>
+          <div class="issue"><p><span><strong id="nIsl">0</strong> islands under 30 px get deleted</span></p>
+            <div class="row"><button class="btn">Show</button><button class="btn">Grow to 30</button><button class="btn">Accept</button></div></div>
+          <div class="issue"><p><span><strong id="nLake">0</strong> lakes under 200 px fill in</span></p>
+            <div class="row"><button class="btn">Show</button><button class="btn">Accept</button></div></div>
+        </div>
+        <div class="grp">
+          <h4>Size</h4>
+          <div class="kv mono"><span>Pixels</span><span>3.16M</span><span>Land</span><span>1.1M</span></div>
+          <div class="scale"><div>Small</div><div class="on">Typical</div><div>Large</div><div>Huge</div></div>
+        </div>
+        <div class="grp">
+          <h4>Nations</h4>
+          <div class="note">5 placed, all on land</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="cap">Mockup v4. Hover the map to see the pixel-snapped brush; change Size to resize it. Terrain is procedurally generated, not real Indonesia data.</p>
+
+<script>
+const W = 232, H = 136;
+function hash(x, y){ let h = x*374761393 + y*668265263; h = (h^(h>>>13))*1274126177; return ((h^(h>>>16))>>>0)/4294967295; }
+function vnoise(x, y){ const xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi;
+  const s=t=>t*t*(3-2*t), u=s(xf), v=s(yf);
+  const a=hash(xi,yi), b=hash(xi+1,yi), c=hash(xi,yi+1), d=hash(xi+1,yi+1);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v; }
+function fbm(x, y){ let f=0, amp=.5, fr=1; for(let i=0;i<5;i++){ f+=amp*vnoise(x*fr,y*fr); amp*=.5; fr*=2.03; } return f; }
+
+const T = new Uint8Array(W*H), mag = new Float32Array(W*H);
+for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+  const nx=x/W, ny=y/H;
+  const bandY = .62 + .18*Math.sin(nx*3.2+0.4) - .25*nx;
+  const band = Math.exp(-Math.pow((ny-bandY)/.09,2));
+  const blob = Math.exp(-(Math.pow((nx-.45)/.13,2)+Math.pow((ny-.32)/.2,2)));
+  const blob2 = Math.exp(-(Math.pow((nx-.86)/.1,2)+Math.pow((ny-.45)/.16,2)));
+  const h = fbm(x/14, y/14)*.9 + Math.max(band*.55, blob*.6, blob2*.55) - .62;
+  if (h>0){ T[y*W+x]=1; mag[y*W+x]=Math.min(30, Math.pow(h/0.5,1.9)*30); }
+}
+const N4=[[1,0],[-1,0],[0,1],[0,-1]];
+function comps(Tm, type){ const id=new Int32Array(W*H).fill(-1), list=[];
+  for(let i=0;i<W*H;i++){ if(Tm[i]!==type||id[i]>=0) continue; const q=[i]; id[i]=list.length; const cells=[]; let edge=false;
+    while(q.length){ const k=q.pop(); cells.push(k); const x=k%W, y=(k/W)|0; if(x===0||y===0||x===W-1||y===H-1) edge=true;
+      for(const [dx,dy] of N4){ const X=x+dx,Y=y+dy; if(X<0||Y<0||X>=W||Y>=H) continue; const j=Y*W+X; if(Tm[j]===type&&id[j]<0){ id[j]=list.length; q.push(j);} } }
+    list.push({cells, edge}); }
+  return list; }
+function distField(Tm){ const d=new Int16Array(W*H).fill(999), q=[];
+  for(let i=0;i<W*H;i++) if(Tm[i]===1){ d[i]=0; q.push(i); }
+  for(let h=0;h<q.length;h++){ const k=q[h], x=k%W, y=(k/W)|0; for(const [dx,dy] of N4){ const X=x+dx,Y=y+dy; if(X<0||Y<0||X>=W||Y>=H) continue; const j=Y*W+X; if(d[j]>d[k]+1){ d[j]=d[k]+1; q.push(j);} } }
+  return d; }
+
+const islands = comps(T,1), lakes = comps(T,0).filter(c=>!c.edge);
+const smallIsl = islands.filter(c=>c.cells.length<4), smallLake = lakes.filter(c=>c.cells.length<8);
+document.getElementById('nIsl').textContent = smallIsl.length;
+document.getElementById('nLake').textContent = smallLake.length;
+const doomed = new Uint8Array(W*H);
+smallIsl.forEach(c=>c.cells.forEach(i=>doomed[i]=1));
+smallLake.forEach(c=>c.cells.forEach(i=>doomed[i]=1));
+
+const Tx = T.slice(), magx = mag.slice();
+smallIsl.forEach(c=>c.cells.forEach(i=>{ Tx[i]=0; magx[i]=0; }));
+smallLake.forEach(c=>c.cells.forEach(i=>{ Tx[i]=1; magx[i]=0; }));
+const state = { game:{T, mag, d:distField(T)}, export:{T:Tx, mag:magx, d:distField(Tx)} };
+state.elev = state.game;
+
+function color(S, i, view){
+  if (view!=='export' && doomed[i]) return [255,40,40];
+  const t=S.T[i], m=S.mag[i];
+  if (view==='elev'){ if (t===0) return [20,26,34]; const g = 60 + m/30*195; return [g,g,g]; }
+  if (t===0){ const d=S.d[i]; if (d===1) return [100,143,255]; const adj=-Math.min(d/2,10); return [70+adj*1.6,132+adj*1.6,180+adj*1.2]; }
+  const x=i%W, y=(i/W)|0;
+  for(const [dx,dy] of N4){ const X=x+dx,Y=y+dy; if(X>=0&&Y>=0&&X<W&&Y<H&&S.T[Y*W+X]===0) return [204,203,158]; }
+  if (m<10) return [190, 220-2*m, 138];
+  if (m<20) return [200+2*m, 183+2*m, 138+2*m];
+  return [240,240,240];
+}
+const c = document.getElementById('c'), ctx = c.getContext('2d'); c.width=W; c.height=H;
+const ov = document.getElementById('overlay'), app = document.getElementById('app');
+let view='game';
+const big = [...islands].sort((a,b)=>b.cells.length-a.cells.length).slice(0,5);
+const names = ['Aceh','Kalimantan','Jawa','Sulawesi','Maluku'];
+const spawns = big.map(cp=>{ let sx=0,sy=0; cp.cells.forEach(k=>{sx+=k%W; sy+=(k/W)|0;}); sx/=cp.cells.length; sy/=cp.cells.length;
+  let best=cp.cells[0], bd=1e9; cp.cells.forEach(k=>{ const d=(k%W-sx)**2+(((k/W)|0)-sy)**2; if(d<bd){bd=d;best=k;} }); return [best%W,(best/W)|0]; });
+function draw(){
+  const S = state[view], img = ctx.createImageData(W,H);
+  for(let i=0;i<W*H;i++){ const [r,g,b]=color(S,i,view); img.data[i*4]=r; img.data[i*4+1]=g; img.data[i*4+2]=b; img.data[i*4+3]=255; }
+  ctx.putImageData(img,0,0); drawOverlay();
+}
+let hover=null;
+function drawOverlay(){
+  const r = c.getBoundingClientRect(), dpr = window.devicePixelRatio||1, cs = getComputedStyle(app);
+  ov.width=r.width*dpr; ov.height=r.height*dpr; const o=ov.getContext('2d'); o.scale(dpr,dpr);
+  const s = r.width/W, pill=cs.getPropertyValue('--pill'), pillTxt=cs.getPropertyValue('--pillTxt'), pin=cs.getPropertyValue('--pin');
+  o.font='600 10px ui-sans-serif, Segoe UI, sans-serif';
+  spawns.forEach(([x,y],i)=>{ const px=(x+.5)*s, py=(y+.5)*s;
+    o.fillStyle=pill; o.beginPath(); o.arc(px,py,4.5,0,7); o.fill();
+    o.fillStyle=pin; o.beginPath(); o.arc(px,py,3,0,7); o.fill();
+    const w=o.measureText(names[i]).width; o.fillStyle=pill; o.fillRect(px+6,py-7,w+8,14);
+    o.fillStyle=pillTxt; o.fillText(names[i], px+10, py+3.5); });
+  if (hover){
+    const cx=Math.floor(hover[0]/s), cy=Math.floor(hover[1]/s), R=Math.max(0,(+rng.value)/4), inF=(x,y)=>(x-cx)**2+(y-cy)**2<=R*R+R*.8;
+    const segs=[];
+    for(let y=cy-Math.ceil(R)-1;y<=cy+Math.ceil(R)+1;y++) for(let x=cx-Math.ceil(R)-1;x<=cx+Math.ceil(R)+1;x++){ if(!inF(x,y)) continue;
+      if(!inF(x,y-1)) segs.push([x,y,x+1,y]); if(!inF(x,y+1)) segs.push([x,y+1,x+1,y+1]);
+      if(!inF(x-1,y)) segs.push([x,y,x,y+1]); if(!inF(x+1,y)) segs.push([x+1,y,x+1,y+1]); }
+    const path=()=>{ o.beginPath(); segs.forEach(([a,b,c2,d])=>{ o.moveTo(Math.round(a*s)+.5,Math.round(b*s)+.5); o.lineTo(Math.round(c2*s)+.5,Math.round(d*s)+.5); }); };
+    o.lineCap='square'; o.strokeStyle='rgba(0,0,0,.55)'; o.lineWidth=3; path(); o.stroke();
+    o.strokeStyle='#fff'; o.lineWidth=1; path(); o.stroke();
+  }
+}
+c.addEventListener('mousemove', e=>{ const r=c.getBoundingClientRect(); hover=[e.clientX-r.left, e.clientY-r.top]; drawOverlay(); });
+c.addEventListener('mouseleave', ()=>{ hover=null; drawOverlay(); });
+document.querySelectorAll('#view button').forEach(b=>b.onclick=()=>{ document.querySelectorAll('#view button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); view=b.dataset.v; draw(); });
+document.querySelectorAll('#pick button').forEach(b=>b.onclick=()=>{ document.querySelectorAll('#pick button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); app.dataset.theme=b.dataset.t; drawOverlay(); });
+const sw=[['Water','rgb(70,132,180)'],['Plains','rgb(190,214,138)'],['Highlands','rgb(224,207,162)'],['Mountains','rgb(240,240,240)'],['Void','#000']];
+document.getElementById('sw').innerHTML = sw.map((s,i)=>`<div class="chip${i===1?' on':''}"><b style="background:${s[1]}"></b>${s[0]}</div>`).join('');
+document.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{ document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); ch.classList.add('on'); });
+document.querySelectorAll('.tool').forEach(t=>t.onclick=()=>{ document.querySelectorAll('.tool').forEach(x=>x.classList.remove('on')); t.classList.add('on'); });
+const rng=document.querySelector('.size input'); rng.oninput=()=>{ rng.nextElementSibling.textContent=rng.value; drawOverlay(); };
+hover=[150,95]; draw(); window.addEventListener('resize', drawOverlay);
+</script>
+</body>
+</html>
