@@ -22,6 +22,7 @@
   "dependencies": {
     "@phosphor-icons/web": "^2.1.2",
     "@preact/signals": "^2.11.4",
+    "fast-png": "^8.0.0",
     "preact": "^11.2.0"
   }
 }
