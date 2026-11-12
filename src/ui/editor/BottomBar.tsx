@@ -1,6 +1,7 @@
 import { LAND, VOID, WATER } from '../../core/grid';
 import type { Paint } from '../../core/tools/common';
 import { brushDiameter, busy, paint, raiseAmount, selection, textureOpts, tool } from '../../state/store';
+import { TOOL_INFO } from './ToolRail';
 
 const SWATCHES: { label: string; paint: Paint; color: string }[] = [
   { label: 'Water', paint: { terrain: WATER, mag: 0 }, color: 'rgb(70,132,180)' },
@@ -22,6 +23,7 @@ function Slider(props: { label: string; min: number; max: number; step?: number;
         max={props.max}
         step={props.step ?? 1}
         value={props.value}
+        style={{ '--p': `${((props.value - props.min) / (props.max - props.min)) * 100}%` }}
         onInput={(e) => props.onInput(+(e.currentTarget as HTMLInputElement).value)}
       />
       <span class="val">{props.format ? props.format(props.value) : props.value}</span>
@@ -35,6 +37,11 @@ export function BottomBar({ onTextureSelection }: { onTextureSelection: () => vo
   const showPaint = t === 'brush' || t === 'fill' || t === 'eyedropper';
   return (
     <div class="ed-bottom">
+      <div class="tool-id">
+        <i aria-hidden="true" class={`ph ${TOOL_INFO[t].icon}`} />
+        {TOOL_INFO[t].label}
+      </div>
+      <span class="bar-sep" />
       {showPaint && (
         <div class="swatches" role="group" aria-label="Terrain">
           {SWATCHES.map((s) => {
@@ -54,7 +61,7 @@ export function BottomBar({ onTextureSelection }: { onTextureSelection: () => vo
       {t === 'raise' && (
         <>
           <Slider label="Amount" min={1} max={10} value={raiseAmount.value} onInput={(v) => (raiseAmount.value = v)} />
-          <span class="hint">Hold Alt to lower</span>
+          <span class="hint">Hold <kbd>Alt</kbd> to lower</span>
         </>
       )}
       {t === 'texture' && (
@@ -77,11 +84,11 @@ export function BottomBar({ onTextureSelection }: { onTextureSelection: () => vo
           )}
         </>
       )}
-      {t === 'select' && <span class="hint">{selection.value ? 'Esc clears the selection' : 'Drag to select an area; tools only affect the selection'}</span>}
-      {t === 'pan' && <span class="hint">Drag to move, scroll to zoom</span>}
-      {t === 'spawn' && <span class="hint">Click land to place a nation, drag a pin to move it</span>}
+      {t === 'select' && <span class="hint">{selection.value ? <>Press <kbd>Esc</kbd> to clear the selection</> : 'Drag to select an area. Tools then only affect the selection.'}</span>}
+      {t === 'pan' && <span class="hint">Drag to move, scroll to zoom. Hold <kbd>Space</kbd> to pan with any tool.</span>}
+      {t === 'spawn' && <span class="hint">Click land to place a nation, drag a pin to move it.</span>}
       {SIZE_TOOLS.has(t) && (
-        <div style={{ marginLeft: 'auto' }}>
+        <div class="end">
           <Slider label="Size" min={1} max={256} value={brushDiameter.value} onInput={(v) => (brushDiameter.value = v)} />
         </div>
       )}

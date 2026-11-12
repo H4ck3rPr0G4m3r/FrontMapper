@@ -98,12 +98,12 @@ function MapSize() {
       <h4>Map size</h4>
       <div class="size-row">
         <input type="number" step={4} min={4} value={w} aria-label="Width" onInput={(e) => setW(+(e.currentTarget as HTMLInputElement).value)} />
-        <span>×</span>
+        <i aria-hidden="true" class="ph ph-x" style={{ fontSize: 10 }} />
         <input type="number" step={4} min={4} value={h} aria-label="Height" onInput={(e) => setH(+(e.currentTarget as HTMLInputElement).value)} />
         <button class="btn" disabled={!changed || w < 4 || h < 4} onClick={() => resizeTo(w, h)}>Resize</button>
       </div>
       {sel && (
-        <button class="btn" style={{ marginTop: 6 }} onClick={() => cropTo(sel)}>
+        <button class="btn grp-action" onClick={() => cropTo(sel)}>
           <i aria-hidden="true" class="ph ph-crop" />
           {`Crop to selection (${sel.w - (sel.w % 4)} × ${sel.h - (sel.h % 4)})`}
         </button>

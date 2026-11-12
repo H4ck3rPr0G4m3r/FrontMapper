@@ -113,7 +113,7 @@ export function Editor({ onReady }: Props) {
   };
 
   return (
-    <div class="ed">
+    <div class="ed screen-in">
       <TopBar onUndo={() => controller.undo()} onRedo={() => controller.redo()} actions={<ExportActions controller={controller} />} onHome={backToStart} />
       <div class="ed-body">
         <ToolRail />

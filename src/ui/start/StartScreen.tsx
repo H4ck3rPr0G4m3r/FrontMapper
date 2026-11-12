@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { importOpenFrontMap, openProject } from '../../core/project';
 import { forgetAutosave, listRecent, loadAutosave, type RecentEntry } from '../../state/autosave';
+import { countriesLow, ensureCountries } from '../../state/earthState';
 import { newBlankMap, openInEditor, screen } from '../../state/session';
 import { readFile } from '../download';
 import './start.css';
@@ -17,6 +18,53 @@ function ago(t: number) {
   if (s < 3600) return `${Math.floor(s / 60)} min ago`;
   if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
   return new Date(t).toLocaleDateString();
+}
+
+/** Latitudes shown on the world strip (the poles are cut off). */
+const LAT_TOP = 80;
+const LAT_BOTTOM = -57;
+
+/** The world in OpenFront's own terrain colours, drawn from the picker's country outlines. */
+function WorldStrip() {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const world = countriesLow.value;
+
+  useEffect(() => {
+    ensureCountries().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const cv = ref.current;
+    const ctx = cv?.getContext('2d');
+    if (!cv || !ctx || !world) return;
+    const { width: W, height: H } = cv;
+    const px = (lon: number) => ((lon + 180) / 360) * W;
+    const py = (lat: number) => ((LAT_TOP - lat) / (LAT_TOP - LAT_BOTTOM)) * H;
+    ctx.clearRect(0, 0, W, H);
+    ctx.beginPath();
+    for (const f of world.features) {
+      const g = f.geometry;
+      const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+      for (const poly of polys)
+        for (const ring of poly) {
+          for (let i = 0; i < ring.length; i++) {
+            const x = px(ring[i][0]);
+            const y = py(ring[i][1]);
+            if (i) ctx.lineTo(x, y);
+            else ctx.moveTo(x, y);
+          }
+          ctx.closePath();
+        }
+    }
+    ctx.fillStyle = 'rgb(190,210,138)';
+    ctx.fill('evenodd');
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(52,74,40,.5)';
+    ctx.stroke();
+    cv.dataset.ready = '';
+  }, [world]);
+
+  return <canvas ref={ref} class="world" width={1680} height={640} aria-hidden="true" />;
 }
 
 export function StartScreen() {
@@ -63,8 +111,10 @@ export function StartScreen() {
     else setError(`"${r.name}" could not be restored from this browser's storage.`);
   };
 
+  const validSize = w >= 4 && h >= 4;
+
   return (
-    <main class="start">
+    <main class="start screen-in">
       <header class="start-head">
         <i aria-hidden="true" class="ph-bold ph-map-trifold" />
         <h1>FrontMapper</h1>
@@ -73,8 +123,9 @@ export function StartScreen() {
 
       {error && (
         <div class="start-error" role="alert">
+          <i aria-hidden="true" class="ph-bold ph-warning" />
           <span>{error}</span>
-          <button class="icon-btn" aria-label="Dismiss" onClick={() => setError(null)}>
+          <button class="icon-btn sm" aria-label="Dismiss" onClick={() => setError(null)}>
             <i aria-hidden="true" class="ph ph-x" />
           </button>
         </div>
@@ -83,75 +134,105 @@ export function StartScreen() {
       <div class="start-grid">
         <section class="start-col">
           <h2>New map</h2>
-          <button class="start-action" onClick={() => (screen.value = 'earth')}>
-            <i aria-hidden="true" class="ph ph-globe-hemisphere-east" />
-            <span>
+          <button class="earth-card" onClick={() => (screen.value = 'earth')}>
+            <WorldStrip />
+            <span class="earth-card-txt">
               <b>From Earth</b>
               <small>Pick countries or an area on the satellite view and convert it.</small>
             </span>
+            <i aria-hidden="true" class="ph-bold ph-arrow-right earth-card-go" />
           </button>
-          <div class="start-action blank">
-            <i aria-hidden="true" class="ph ph-paint-brush" />
-            <span>
-              <b>Blank map</b>
-              <small>All water. Paint land, then texture it.</small>
-              <span class="presets" role="group" aria-label="Size presets">
-                {PRESETS.map(([pw, ph]) => (
-                  <button key={pw} class={`pill${pw === w && ph === h ? ' on' : ''}`} onClick={() => { setW(pw); setH(ph); }}>
-                    {`${pw} × ${ph}`}
-                  </button>
-                ))}
+
+          <div class="blank-card">
+            <div class="card-head">
+              <i aria-hidden="true" class="ph ph-paint-brush" />
+              <span>
+                <b>Blank map</b>
+                <small>All water. Paint land, then texture it.</small>
+              </span>
+            </div>
+            <div class="blank-form">
+              <span class="seg" role="group" aria-label="Size presets">
+                {PRESETS.map(([pw, ph]) => {
+                  const on = pw === w && ph === h;
+                  return (
+                    <button key={pw} class={on ? 'on' : ''} aria-pressed={on} onClick={() => { setW(pw); setH(ph); }}>
+                      {`${pw} × ${ph}`}
+                    </button>
+                  );
+                })}
               </span>
               <span class="blank-size">
                 <label>
                   Width
                   <input type="number" step={4} min={4} value={w} onInput={(e) => setW(+(e.currentTarget as HTMLInputElement).value)} />
                 </label>
+                <i aria-hidden="true" class="ph ph-x" />
                 <label>
                   Height
                   <input type="number" step={4} min={4} value={h} onInput={(e) => setH(+(e.currentTarget as HTMLInputElement).value)} />
                 </label>
-                <button class="btn primary" disabled={w < 4 || h < 4} onClick={() => newBlankMap(w, h)}>
+                <button class="btn primary" disabled={!validSize} onClick={() => newBlankMap(w, h)}>
                   Create blank map
                 </button>
               </span>
-            </span>
+            </div>
           </div>
+
           <h2>Open</h2>
-          <button class="start-action" onClick={() => projectInput.current?.click()}>
-            <i aria-hidden="true" class="ph ph-folder-open" />
-            <span>
-              <b>Project file</b>
-              <small>A .frontmap file saved from FrontMapper.</small>
-            </span>
-          </button>
-          <button class="start-action" onClick={() => importInput.current?.click()}>
-            <i aria-hidden="true" class="ph ph-download-simple" />
-            <span>
-              <b>OpenFront map</b>
-              <small>image.png and info.json from map-generator/assets/maps.</small>
-            </span>
-          </button>
+          <div class="open-row">
+            <button class="open-card" onClick={() => projectInput.current?.click()}>
+              <i aria-hidden="true" class="ph ph-folder-open" />
+              <span>
+                <b>Project file</b>
+                <small>A .frontmap file saved from FrontMapper.</small>
+              </span>
+            </button>
+            <button class="open-card" onClick={() => importInput.current?.click()}>
+              <i aria-hidden="true" class="ph ph-download-simple" />
+              <span>
+                <b>OpenFront map</b>
+                <small>image.png and info.json from map-generator/assets/maps.</small>
+              </span>
+            </button>
+          </div>
           <input ref={projectInput} type="file" accept=".frontmap" hidden onChange={(e) => onProject((e.currentTarget as HTMLInputElement).files)} />
           <input ref={importInput} type="file" accept=".png,.json" multiple hidden onChange={(e) => onImport((e.currentTarget as HTMLInputElement).files)} />
         </section>
 
         <section class="start-col">
           <h2>Recent</h2>
-          {recent === null && <p class="empty-note">Loading…</p>}
-          {recent?.length === 0 && <p class="empty-note">Maps you work on are saved in this browser and show up here.</p>}
+          {recent === null && (
+            <ul class="recent" aria-busy="true" aria-label="Loading recent maps">
+              <li class="recent-skel" />
+              <li class="recent-skel" />
+              <li class="recent-skel" />
+            </ul>
+          )}
+          {recent?.length === 0 && (
+            <div class="recent-empty">
+              <i aria-hidden="true" class="ph ph-clock-counter-clockwise" />
+              <p>Maps you work on are saved in this browser and show up here.</p>
+            </div>
+          )}
           {recent && recent.length > 0 && (
             <ul class="recent">
               {recent.map((r) => (
                 <li key={r.id}>
                   <button class="recent-item" onClick={() => resume(r)}>
-                    <b>{r.name}</b>
-                    <small class="mono">{`${r.width} × ${r.height}`}</small>
-                    <small>{ago(r.updatedAt)}</small>
+                    <span class="recent-shape" aria-hidden="true">
+                      <b style={{ aspectRatio: `${r.width} / ${r.height}` }} />
+                    </span>
+                    <span class="recent-txt">
+                      <b>{r.name}</b>
+                      <small class="mono">{`${r.width} × ${r.height}`}</small>
+                    </span>
+                    <small class="recent-when">{ago(r.updatedAt)}</small>
                   </button>
                   <button
-                    class="icon-btn"
+                    class="icon-btn recent-del"
                     aria-label={`Remove ${r.name} from recent`}
+                    title="Remove from recent"
                     onClick={async () => {
                       await forgetAutosave(r.id);
                       setRecent(await listRecent());

@@ -63,7 +63,7 @@ export function SizePanel() {
         {out.length > 0 && (
           <div class="outliers">
             <span>{includeOutliers.value ? `Including ${out.length} far-off ${out.length === 1 ? 'part' : 'parts'}` : `${out.length} far-off ${out.length === 1 ? 'part' : 'parts'} not included`}</span>
-            <button class="btn" onClick={() => { includeOutliers.value = !includeOutliers.value; void recomputeFrame(); }}>
+            <button class="btn sm" onClick={() => { includeOutliers.value = !includeOutliers.value; void recomputeFrame(); }}>
               {includeOutliers.value ? 'Leave out' : 'Include'}
             </button>
           </div>

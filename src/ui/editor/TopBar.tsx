@@ -21,22 +21,25 @@ export function TopBar({ onUndo, onRedo, actions, onHome }: Props) {
   return (
     <header class="ed-top">
       {onHome ? (
-        <button class="icon-btn" aria-label="Back to start" title="Back to start" onClick={onHome}>
+        <button class="icon-btn ed-home" aria-label="Back to start" title="Back to start" onClick={onHome}>
           <i aria-hidden="true" class="ph-bold ph-map-trifold" />
         </button>
       ) : (
-        <i aria-hidden="true" class="ph-bold ph-map-trifold" style={{ fontSize: 16 }} />
+        <i aria-hidden="true" class="ph-bold ph-map-trifold" style={{ fontSize: 17, margin: '0 5px' }} />
       )}
       <span class="ed-title">
         {meta.value.name.trim() || 'Untitled map'}
         {p && <small>{`${p.grid.width} × ${p.grid.height}`}</small>}
       </span>
-      <button class="icon-btn" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo.value} onClick={onUndo}>
-        <i aria-hidden="true" class="ph ph-arrow-counter-clockwise" />
-      </button>
-      <button class="icon-btn" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!canRedo.value} onClick={onRedo}>
-        <i aria-hidden="true" class="ph ph-arrow-clockwise" />
-      </button>
+      <span class="bar-sep" />
+      <div class="ed-history">
+        <button class="icon-btn" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo.value} onClick={onUndo}>
+          <i aria-hidden="true" class="ph ph-arrow-counter-clockwise" />
+        </button>
+        <button class="icon-btn" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!canRedo.value} onClick={onRedo}>
+          <i aria-hidden="true" class="ph ph-arrow-clockwise" />
+        </button>
+      </div>
       <div class="grow" />
       <div class="seg" role="group" aria-label="View">
         {VIEWS.map((v) => (
@@ -45,6 +48,7 @@ export function TopBar({ onUndo, onRedo, actions, onHome }: Props) {
           </button>
         ))}
       </div>
+      {actions && <span class="bar-sep" />}
       {actions}
     </header>
   );
