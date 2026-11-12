@@ -1,13 +1,14 @@
 import { lazy, Suspense } from 'preact/compat';
 
-const fixture = import.meta.env.DEV ? new URLSearchParams(location.search).get('fixture') : null;
+const params = new URLSearchParams(location.search);
+const fixture = import.meta.env.DEV ? params.get('fixture') : null;
 const FixtureView = import.meta.env.DEV ? lazy(() => import('../dev/FixtureView').then((m) => ({ default: m.FixtureView }))) : null;
 
 export function App() {
   if (fixture && FixtureView) {
     return (
       <Suspense fallback={null}>
-        <FixtureView name={fixture} />
+        <FixtureView name={fixture} editor={params.has('editor')} />
       </Suspense>
     );
   }

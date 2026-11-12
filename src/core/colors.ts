@@ -15,7 +15,7 @@ export function tileColor(t: Terrain | number, mag: number, shore: boolean, dept
     if (mag < 20) return [200 + 2 * mag, 183 + 2 * mag, 138 + 2 * mag];
     return [240, 240, 240];
   }
-  return [22, 22, 22];
+  return [8, 8, 8];
 }
 
 export function elevationColor(t: Terrain | number, mag: number): RGB {

@@ -38,7 +38,7 @@ vec3 gameColor(uint t, float m, bool shore, float depth) {
     if (m < 20.0) return vec3(200.0 + 2.0 * m, 183.0 + 2.0 * m, 138.0 + 2.0 * m);
     return vec3(240.0);
   }
-  return vec3(22.0);
+  return vec3(8.0);
 }
 
 vec3 elevationColor(uint t, float m) {

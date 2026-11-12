@@ -119,6 +119,7 @@ export function EditorCanvas(props: Props) {
       <canvas ref={glRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
       <canvas
         ref={ovRef}
+        data-overlay
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: props.cursor ?? 'default', touchAction: 'none' }}
       />
     </div>

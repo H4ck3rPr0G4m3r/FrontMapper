@@ -81,7 +81,7 @@ describe('colours', () => {
     expect(tileColor(LAND, 5, false, 0)).toEqual([190, 210, 138]);
     expect(tileColor(LAND, 15, false, 0)).toEqual([230, 213, 168]);
     expect(tileColor(LAND, 25, false, 0)).toEqual([240, 240, 240]);
-    expect(tileColor(VOID, 0, false, 0)).toEqual([22, 22, 22]);
+    expect(tileColor(VOID, 0, false, 0)).toEqual([8, 8, 8]);
   });
 
   it('elevation view is greyscale by magnitude', () => {

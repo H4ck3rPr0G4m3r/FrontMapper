@@ -1,0 +1,51 @@
+.ed { position: fixed; inset: 0; display: grid; grid-template-rows: 40px minmax(0, 1fr); background: var(--app); }
+
+/* Top bar */
+.ed-top { display: flex; align-items: center; gap: 8px; padding: 0 10px; border-bottom: 1px solid var(--line); background: var(--panel); min-width: 0; }
+.ed-title { font-weight: 650; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-title small { color: var(--dim); font-weight: 400; margin-left: 6px; font-size: 11px; font-family: var(--mono); }
+.ed-top .grow { flex: 1; }
+.icon-btn { width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r); border: 1px solid transparent; background: none; color: var(--dim); cursor: pointer; font-size: 15px; }
+.icon-btn:hover:not(:disabled) { background: var(--btn); color: var(--txt); }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+
+.seg { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.seg button { background: none; border: 0; color: var(--dim); font-size: 11px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button:hover { color: var(--txt); }
+.seg button.on { background: var(--sel); color: var(--selTxt); }
+
+/* Body */
+.ed-body { display: grid; grid-template-columns: 40px minmax(0, 1fr) 248px; min-height: 0; }
+.ed-tools { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; }
+.tool { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r); border: 0; background: none; color: var(--dim); font-size: 17px; cursor: pointer; position: relative; }
+.tool:hover { background: var(--btn); color: var(--txt); }
+.tool.on { background: var(--sel); color: var(--selTxt); }
+.tool .tip { position: absolute; left: 38px; top: 50%; transform: translateY(-50%); background: var(--panel); border: 1px solid var(--line); color: var(--txt); font-size: 11px; padding: 3px 7px; border-radius: var(--r); white-space: nowrap; pointer-events: none; opacity: 0; z-index: 10; }
+.tool:hover .tip { opacity: 1; transition: opacity .12s .35s; }
+.tool .tip kbd { font-family: var(--mono); color: var(--dim); margin-left: 6px; }
+.rail-sep { width: 20px; height: 1px; background: var(--line); margin: 4px 0; }
+
+.ed-center { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+/* Bottom bar */
+.ed-bottom { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-top: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; row-gap: 6px; }
+.swatches { display: flex; gap: 1px; }
+.chip { display: flex; align-items: center; gap: 5px; padding: 3px 7px 3px 4px; border-radius: var(--r); border: 1px solid transparent; background: none; color: var(--dim); font-size: 11px; cursor: pointer; }
+.chip:hover { color: var(--txt); }
+.chip.on { border-color: var(--sel); color: var(--txt); }
+.chip b { width: 13px; height: 13px; border-radius: 2px; display: block; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18); }
+.ctl { display: flex; align-items: center; gap: 6px; color: var(--dim); font-size: 11px; white-space: nowrap; }
+.ctl input[type=range] { width: 84px; }
+.ctl .val { font-family: var(--mono); color: var(--txt); min-width: 26px; text-align: right; }
+.bar-sep { width: 1px; align-self: stretch; background: var(--line); }
+.hint { color: var(--dim); font-size: 11px; }
+
+/* Side panel */
+.ed-side { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; background: none; border: 0; padding: 9px 0; color: var(--dim); font-size: 11px; cursor: pointer; }
+.tabs button.on { color: var(--txt); font-weight: 600; box-shadow: inset 0 -2px 0 var(--sel); }
+.pane { padding: 12px; display: flex; flex-direction: column; gap: 16px; overflow: auto; min-height: 0; }
+.grp h4 { margin: 0 0 7px; font-size: 11px; color: var(--dim); font-weight: 500; }
+.empty-note { color: var(--dim); font-size: 11px; line-height: 1.5; }

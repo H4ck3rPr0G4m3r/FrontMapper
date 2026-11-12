@@ -2,11 +2,17 @@ import { useMemo } from 'preact/hooks';
 import { simulateExport } from '../core/generator';
 import type { Renderer, ViewMode } from '../render/renderer';
 import { EditorCanvas } from '../ui/editor/EditorCanvas';
+import { Editor } from '../ui/editor/Editor';
+import { project } from '../state/store';
 import { buildFixture } from './fixtures';
 
 /** Bare renderer on a fixture map, driven by tests through `window.__fm`. Dev builds only. */
-export function FixtureView({ name }: { name: string }) {
+export function FixtureView({ name, editor }: { name: string; editor?: boolean }) {
   const grid = useMemo(() => buildFixture(name), [name]);
+  if (editor && grid) {
+    if (project.value?.grid !== grid) project.value = { grid, name: `Fixture ${name}` };
+    return <Editor />;
+  }
   const onReady = (r: Renderer) => {
     queueMicrotask(() => {
       (window as any).__fm = {
