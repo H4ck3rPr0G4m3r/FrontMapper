@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "e2e": "playwright test",
-    "data": "node --use-system-ca scripts/data/build-data.mjs"
+    "data": "node --use-system-ca scripts/data/build-data.mjs",
+    "verify:generator": "node --use-system-ca scripts/verify-generator/run.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",
