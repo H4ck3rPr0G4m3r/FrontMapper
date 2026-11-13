@@ -1,0 +1,3 @@
+{"type":"FeatureCollection", "features": [
+{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[117.7539,15.1544],[117.7519,15.1519],[117.7539,15.1501],[117.7557,15.1519],[117.7539,15.1544]]]},"properties":{"id":"SCR","name":"Scarborough Reef","iso2":""}}
+]}

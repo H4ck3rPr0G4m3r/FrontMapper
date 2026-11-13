@@ -1,0 +1,110 @@
+.start { max-width: 1120px; min-height: 100dvh; margin: 0 auto; padding: 56px 32px 64px; }
+
+.start-head { display: flex; align-items: center; gap: 10px; margin-bottom: 44px; }
+.start-head > i { font-size: 22px; }
+.start-head h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.02em; }
+.start-head span { color: var(--dim); font-size: 13px; padding-left: 12px; margin-left: 2px; border-left: 1px solid var(--line); }
+
+.start-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 56px; align-items: start; }
+.start-col h2 { margin: 0 0 12px; font-size: 12px; font-weight: 500; color: var(--dim); }
+.start-col h2:not(:first-child) { margin-top: 32px; }
+
+/* From Earth: the world in OpenFront's terrain colours */
+.earth-card {
+  position: relative; display: block; width: 100%; aspect-ratio: 21 / 8; padding: 0; overflow: hidden;
+  background: rgb(70, 132, 180); border: 1px solid var(--line); border-radius: var(--r);
+  color: #fff; text-align: left; cursor: pointer;
+  transition: border-color .15s var(--ease);
+}
+.earth-card:hover, .earth-card:focus-visible { border-color: var(--sel); }
+.earth-card .world {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0;
+  transition: opacity .5s var(--ease), transform .7s var(--ease);
+}
+.earth-card .world[data-ready] { opacity: 1; }
+.earth-card:hover .world { transform: scale(1.025); }
+.earth-card::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(14, 22, 30, .9) 0%, rgba(14, 22, 30, .55) 26%, rgba(14, 22, 30, 0) 58%);
+}
+.earth-card-txt { position: absolute; left: 18px; right: 64px; bottom: 15px; z-index: 1; display: flex; flex-direction: column; gap: 3px; }
+.earth-card-txt b { font-size: 17px; font-weight: 650; letter-spacing: -0.015em; }
+.earth-card-txt small { font-size: 13px; color: rgba(255, 255, 255, .82); }
+.earth-card-go {
+  position: absolute; right: 16px; bottom: 16px; z-index: 1; width: 32px; height: 32px; display: grid; place-items: center;
+  background: var(--sel); color: var(--selTxt); border-radius: var(--r); font-size: 15px;
+  transition: transform .2s var(--ease);
+}
+.earth-card:hover .earth-card-go { transform: translateX(3px); }
+
+/* Blank map */
+.blank-card { margin-top: 10px; padding: 14px 16px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+.card-head, .open-card { display: flex; gap: 12px; align-items: flex-start; text-align: left; }
+.card-head > i, .open-card > i { font-size: 20px; color: var(--dim); flex: none; margin-top: 1px; }
+.card-head > span, .open-card > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.card-head b, .open-card b { font-size: 13px; font-weight: 600; }
+.card-head small, .open-card small { color: var(--dim); font-size: 12px; line-height: 1.45; }
+.blank-form { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin: 14px 0 0 32px; }
+.blank-size { display: flex; align-items: flex-end; gap: 8px; align-self: stretch; }
+.blank-size label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--dim); }
+.blank-size input { width: 82px; }
+.blank-size > i { height: 28px; display: grid; place-items: center; color: var(--faint); font-size: 11px; }
+.blank-size .btn { margin-left: auto; }
+
+.blank-note { font-size: 11px; color: var(--dim); font-family: var(--mono); }
+.blank-note.bad { color: var(--warn); font-family: var(--font); }
+
+/* Open */
+.open-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.open-card {
+  padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); color: var(--txt); cursor: pointer;
+  transition: background .12s var(--ease), border-color .12s var(--ease);
+}
+.open-card:hover { background: #2e2e2e; border-color: var(--line-hi); }
+.open-card:hover > i { color: var(--txt); }
+.open-card:active { transform: translateY(1px); }
+
+/* Recent */
+.recent { list-style: none; margin: 0 -10px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.recent li { position: relative; display: flex; align-items: center; }
+.recent-item {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 8px 44px 8px 10px; text-align: left;
+  background: none; border: 0; border-radius: var(--r); color: var(--txt); cursor: pointer;
+  transition: background .12s var(--ease);
+}
+.recent li:hover .recent-item, .recent-item:focus-visible { background: var(--panel); }
+.recent-shape { width: 40px; height: 30px; flex: none; display: grid; place-items: center; }
+.recent-shape b { display: block; max-width: 100%; max-height: 100%; width: 100%; height: auto; background: var(--btn); border: 1px solid var(--line-hi); border-radius: 2px; }
+.recent-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.recent-txt b { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-txt small { color: var(--dim); font-size: 11px; }
+.recent-when { color: var(--dim); font-size: 11px; white-space: nowrap; transition: opacity .12s var(--ease); }
+.recent-del { position: absolute; right: 8px; opacity: 0; }
+.recent li:hover .recent-del, .recent-del:focus-visible { opacity: 1; }
+.recent li:hover .recent-when, .recent li:focus-within .recent-when { opacity: 0; }
+.recent-skel { height: 46px; margin: 0 10px; border-radius: var(--r); background: var(--panel); animation: skel 1.2s ease-in-out infinite alternate; }
+.recent-skel:nth-child(2) { opacity: .7; }
+.recent-skel:nth-child(3) { opacity: .4; }
+@keyframes skel { from { background: var(--panel); } to { background: #2f2f2f; } }
+.recent-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 18px 16px; border: 1px dashed var(--line); border-radius: var(--r); color: var(--dim); }
+.recent-empty i { font-size: 20px; }
+.recent-empty p { margin: 0; font-size: 12px; line-height: 1.5; max-width: 34ch; }
+
+.start-error { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; margin: -20px 0 24px; border: 1px solid var(--warn-line); border-radius: var(--r); background: var(--warn-bg); }
+.start-error > i { color: var(--warn); font-size: 15px; }
+.start-error span { flex: 1; }
+
+@media (max-width: 860px) {
+  .start { padding: 28px 16px 48px; }
+  .start-head { margin-bottom: 28px; }
+  .start-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .earth-card { aspect-ratio: 16 / 9; }
+  .blank-form { margin-left: 0; }
+  .recent-del { opacity: 1; }
+  .recent-when { display: none; }
+}
+@media (max-width: 520px) {
+  .open-row { grid-template-columns: minmax(0, 1fr); }
+  .start-head span { display: none; }
+  .blank-size { flex-wrap: wrap; }
+}

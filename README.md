@@ -1,0 +1,51 @@
+# FrontMapper Studio
+
+A map maker for [OpenFront](https://openfront.io). Pick countries, provinces or a drawn area on a satellite view and convert it, or start from a blank map. Then touch it up with the editor's tools, check what the game's generator will delete, place nations, and export a zip ready for `map-generator/assets/maps/`.
+
+It is a static web app (GitHub Pages). Playing locally and opening the pull request are handled by FrontMapper Companion, a separate download.
+
+## Development
+
+```sh
+npm install
+npm run dev        # http://localhost:5173
+npm test           # unit tests (Vitest); BENCH=1 also runs the large-map benchmarks
+npm run e2e        # browser tests (Playwright, uses the installed Chromium channel)
+npm run build      # type check and production build into dist/
+```
+
+Dev-only extras:
+
+- `?fixture=render&editor=1` opens the editor on a generated test map.
+- `npm run data` rebuilds `public/data/` from Natural Earth and OpenFront (needs network).
+- `npm run verify:generator` checks that the Checks tab predicts exactly what OpenFront's Go
+  map generator removes. It needs git and Go (on `PATH`, or unpacked into `.cache/go`), keeps a
+  shallow OpenFrontIO checkout in `.cache/ofio`, runs 5 fixture maps and exits 1 on any
+  mismatch. Add `-- --zip path/to/export.zip` to check an exported map too.
+
+Some machines intercept TLS. The npm scripts that reach the network run Node with `--use-system-ca`, so it trusts the Windows/macOS certificate store; they never turn verification off.
+
+## Deploy
+
+`.github/workflows/pages.yml` tests, builds with `PAGES_BASE=/FrontMapper/` and deploys `dist/` to GitHub Pages on every push to `main`.
+
+## How Earth conversion works
+
+1. **Coastlines:** water polygons from the OpenFreeMap `water` layer (OpenStreetMap), rasterised at the map's resolution.
+2. **Elevation:** AWS Terrain Tiles (Terrarium), mapped to OpenFront magnitudes with the curve in the picker. The defaults are plains up to 300 m, highlands up to 1500 m, and mountains above that, peaking at 4000 m.
+3. **Borders:** Natural Earth countries and provinces. Land the borders miss, such as small islands, goes to the nearest country.
+4. Selected land becomes land. Other land in the frame becomes impassable void, and water stays water.
+
+A tile that fails to download after 3 retries stops the conversion with a Retry. It never becomes land, water or 0 m.
+
+## Data and credits
+
+| Data | Source | Licence |
+| --- | --- | --- |
+| Coastlines, lakes | © OpenStreetMap contributors, via OpenFreeMap / OpenMapTiles | ODbL |
+| Elevation | AWS Terrain Tiles (Mapzen Terrarium) | see the [attribution list](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) |
+| Borders, provinces, cities | Natural Earth 10m | public domain |
+| Satellite imagery (display only) | Esri, Maxar, Earthstar Geographics | display in the picker only |
+| Flags, `info.json` schema | OpenFrontIO | AGPL-3.0 |
+
+Exports include a `CREDITS.md.snippet` with the lines to merge into OpenFront's `CREDITS.md`. `public/data/SOURCES.md` records the exact data versions.
