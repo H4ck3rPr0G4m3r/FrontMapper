@@ -4,7 +4,7 @@ import type { SourceId } from '../core/credits';
 import { elevationGrid, magFor } from './elevation';
 import { HALF, lonLatToMerc } from './projection';
 import { fillNearest, fillRings } from './raster';
-import { loadCountriesLow, loadCountry, loadProvinces, type CountryProps, type ProvinceProps } from './regions';
+import { DataMissing, loadCountriesLow, loadCountry, loadProvinces, type CountryProps, type ProvinceProps } from './regions';
 import type { ElevationCurve, FrameSize, SelOp, SelShape } from './types';
 import { waterMask } from './water';
 
@@ -135,7 +135,11 @@ export async function countriesNear(fs: FrameSize, regions: RegionLoaders, onPro
   const out = await Promise.all(
     near.map(async (f) => {
       const id = f.properties.id;
-      const full = await regions.country(id).catch(() => null);
+      // Only a country with no detailed file falls back to its outline; a failed download fails.
+      const full = await regions.country(id).catch((e) => {
+        if (e instanceof DataMissing) return null;
+        throw e;
+      });
       onProgress?.(++done, near.length);
       const geoms = full?.features.length ? full.features.map((g) => g.geometry) : [f.geometry];
       return geoms.map((geometry) => ({ id, geometry }));

@@ -69,7 +69,8 @@ const sleep = (ms: number, signal: AbortSignal) =>
 
 /**
  * Download and decode every URL. Retries each failure, then rejects with TileFetchError
- * listing what is still missing; it never resolves with a gap.
+ * listing what failed (tiles not yet started are skipped once one fails for good); it
+ * never resolves with a gap.
  */
 export async function fetchTiles<T>(urls: string[], decode: (b: ArrayBuffer, url: string) => Promise<T> | T, opts: FetchTilesOpts): Promise<T[]> {
   const { fetch, signal, retries = 3, concurrency = 8, retryDelayMs = 400, onProgress } = opts;
@@ -78,6 +79,8 @@ export async function fetchTiles<T>(urls: string[], decode: (b: ArrayBuffer, url
   let lastError: unknown;
   let next = 0, done = 0;
   onProgress?.(0, urls.length);
+  /** Set once a tile has failed for good: no new tiles start, so a dead connection fails fast. */
+  let stopped = false;
   const one = async (url: string): Promise<T> => {
     let lastErr: unknown;
     for (let attempt = 0; attempt <= retries; attempt++) {
@@ -85,17 +88,23 @@ export async function fetchTiles<T>(urls: string[], decode: (b: ArrayBuffer, url
       if (attempt) await sleep(retryDelayMs * 2 ** (attempt - 1), signal);
       try {
         const r = await fetch(url, { signal });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        if (!r.ok) {
+          const err = new Error(`HTTP ${r.status}`);
+          // Client errors other than timeouts and rate limits won't change on a retry.
+          if (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429) throw Object.assign(err, { final: true });
+          throw err;
+        }
         return await decode(await r.arrayBuffer(), url);
       } catch (e) {
         if (signal.aborted) throw signal.reason;
         lastErr = e;
+        if ((e as { final?: boolean }).final) break;
       }
     }
     throw lastErr;
   };
   const worker = async () => {
-    while (next < urls.length) {
+    while (next < urls.length && !stopped) {
       const i = next++;
       try {
         out[i] = await one(urls[i]);
@@ -103,6 +112,7 @@ export async function fetchTiles<T>(urls: string[], decode: (b: ArrayBuffer, url
         if (signal.aborted) throw e;
         failed.push(urls[i]);
         lastError = e;
+        stopped = true;
       }
       onProgress?.(++done, urls.length);
     }

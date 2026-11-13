@@ -1,5 +1,6 @@
 import { get, set, del } from 'idb-keyval';
-import { saveProject, openProject, type ProjectState } from '../core/project';
+import { signal } from '@preact/signals';
+import { openProject, saveProjectAsync, type ProjectState } from '../core/project';
 
 export interface RecentEntry {
   id: string;
@@ -10,6 +11,9 @@ export interface RecentEntry {
 }
 
 const RECENT_KEY = 'recent';
+
+/** Why the last save to this browser failed, or null when it worked. */
+export const autosaveError = signal<string | null>(null);
 const MAX_RECENT = 10;
 
 /** The write in flight, if any. Listing waits for it so a map closed a moment ago shows up to date. */
@@ -59,7 +63,13 @@ export class AutoSaver {
     // Snapshot now: when the editor is closing, the project is gone by the time the write runs.
     const s = this.snapshot();
     if (!s) return this.writing;
-    this.writing = this.writing.then(() => this.write(s)).catch(() => undefined);
+    const bytes = saveProjectAsync(s); // copies the map now; compresses when its turn comes
+    this.writing = this.writing
+      .then(() => this.write(s, bytes))
+      .then(
+        () => void (autosaveError.value = null),
+        (e) => void (autosaveError.value = e instanceof Error ? e.message : String(e)),
+      );
     lastWrite = this.writing;
     return this.writing;
   }
@@ -68,8 +78,8 @@ export class AutoSaver {
     clearTimeout(this.timer);
   }
 
-  private async write(s: ProjectState) {
-    await set(`autosave:${s.id}`, saveProject(s));
+  private async write(s: ProjectState, bytes: () => Promise<Uint8Array>) {
+    await set(`autosave:${s.id}`, await bytes());
     const entry: RecentEntry = { id: s.id, name: s.meta.name || 'Untitled map', width: s.grid.width, height: s.grid.height, updatedAt: Date.now() };
     const recent = [entry, ...(await readRecent()).filter((r) => r.id !== s.id)];
     await set(RECENT_KEY, recent.slice(0, MAX_RECENT));

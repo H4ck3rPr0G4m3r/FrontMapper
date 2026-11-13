@@ -25,12 +25,23 @@ export class AnalysisClient {
   private worker: Worker;
   private timer = 0;
   private nextId = 1;
-  private latestSent = 0;
-  private revisionFor = new Map<number, number>();
+  /** Request the worker is running, if any. Only one runs at a time. */
+  private inFlight: { id: number; revision: number } | null = null;
+  /** Newest revision that arrived while a request was running; sent when it finishes. */
+  private queued: number | null = null;
 
-  constructor(private grid: MapGrid, private renderer: () => Renderer | null) {
-    this.worker = new Worker(new URL('../workers/analysis.worker.ts', import.meta.url), { type: 'module' });
+  constructor(
+    private grid: MapGrid,
+    private renderer: () => Renderer | null,
+    makeWorker: () => Worker = () => new Worker(new URL('../workers/analysis.worker.ts', import.meta.url), { type: 'module' }),
+  ) {
+    this.worker = makeWorker();
     this.worker.onmessage = (e: MessageEvent<AnalyzeResult>) => this.onResult(e.data);
+    this.worker.onerror = () => {
+      this.inFlight = null;
+      this.queued = null;
+      analysisPending.value = false;
+    };
   }
 
   /** Call after every committed change. */
@@ -52,10 +63,14 @@ export class AnalysisClient {
   }
 
   private async send(revision: number) {
-    await this.renderer()?.scheduler?.whenIdle();
+    if (this.inFlight) {
+      this.queued = revision;
+      return;
+    }
     const id = this.nextId++;
-    this.latestSent = id;
-    this.revisionFor.set(id, revision);
+    this.inFlight = { id, revision };
+    await this.renderer()?.scheduler?.whenIdle();
+    if (this.inFlight?.id !== id) return;
     const req: AnalyzeRequest = {
       type: 'analyze',
       id,
@@ -68,9 +83,11 @@ export class AnalysisClient {
   }
 
   private onResult(r: AnalyzeResult) {
-    const revision = this.revisionFor.get(r.id) ?? 0;
-    this.revisionFor.delete(r.id);
-    if (r.id !== this.latestSent) return; // superseded
+    if (this.inFlight?.id !== r.id) return;
+    const { revision } = this.inFlight;
+    this.inFlight = null;
+    const next = this.queued;
+    this.queued = null;
     const sim: ExportSimulation = {
       grid: { width: this.grid.width, height: this.grid.height, terrain: r.simTerrain, mag: r.simMag },
       removedIslands: r.islands.map((cells, k) => ({ cells, replacement: r.islandRepl[k] as Terrain })),
@@ -78,7 +95,8 @@ export class AnalysisClient {
       landTiles: r.landTiles,
     };
     analysis.value = { sim, revision };
-    analysisPending.value = false;
     this.renderer()?.setExportSim(sim);
+    if (next !== null) void this.send(next);
+    else analysisPending.value = false;
   }
 }

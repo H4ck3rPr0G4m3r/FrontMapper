@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { LAND, createGrid } from '../../src/core/grid';
-import { buildInfoJson, cropGrid, deriveIds, resizeGrid, validateInfo, type MapMeta } from '../../src/core/info';
+import { buildInfoJson, CATEGORIES, cropGrid, deriveIds, resizeGrid, validateInfo, type MapMeta } from '../../src/core/info';
 import { remapNations, type Nation } from '../../src/core/nations';
 
 describe('deriveIds', () => {
@@ -77,5 +77,28 @@ describe('validateInfo nation messages', () => {
     const errors = validateInfo(buildInfoJson(meta, bad));
     expect(errors).toContain('Nation 1: needs a name');
     expect(errors).toContain('Nation "Utö": is outside the map');
+  });
+});
+
+describe('deriveIds beyond accented Latin', () => {
+  it('spells out Latin letters NFD does not split', () => {
+    expect(deriveIds('Bjørn Øya').canonicalName).toBe('Bjorn Oya');
+    expect(deriveIds('Łódź').canonicalName).toBe('Lodz');
+    expect(deriveIds('Straße').id).toBe('Strasse');
+  });
+
+  it('transliterates Cyrillic and Greek', () => {
+    expect(deriveIds('Москва')).toMatchObject({ canonicalName: 'Moskva', id: 'Moskva' });
+    expect(deriveIds('Αθήνα').canonicalName).toBe('Athina');
+  });
+
+  it('gives other scripts a valid, distinct name instead of failing the schema', () => {
+    const tokyo = deriveIds('東京');
+    expect(tokyo.canonicalName).toMatch(/^[a-zA-Z0-9\s().-]+$/);
+    expect(tokyo.id).not.toBe(deriveIds('大阪').id);
+    expect(deriveIds('!!!').canonicalName).not.toBe('');
+    const info = buildInfoJson({ name: '東京', categories: [CATEGORIES[0]] }, []) as Record<string, unknown>;
+    expect(validateInfo(info)).toEqual([]);
+    expect(info.display_name).toBe('東京');
   });
 });

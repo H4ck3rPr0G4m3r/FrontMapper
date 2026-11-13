@@ -1,6 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import type { ViewMode } from '../../render/renderer';
 import { canRedo, canUndo, meta, project, view } from '../../state/store';
+import { autosaveError } from '../../state/autosave';
 
 const VIEWS: { id: ViewMode; label: string }[] = [
   { id: 'game', label: 'Game' },
@@ -31,6 +32,12 @@ export function TopBar({ onUndo, onRedo, actions, onHome }: Props) {
         {meta.value.name.trim() || 'Untitled map'}
         {p && <small>{`${p.grid.width} × ${p.grid.height}`}</small>}
       </span>
+      {autosaveError.value && (
+        <span class="save-warn" role="status" title={`Saving to this browser failed: ${autosaveError.value} Use Save to keep a copy.`}>
+          <i aria-hidden="true" class="ph-bold ph-warning" />
+          Not saved in browser
+        </span>
+      )}
       <span class="bar-sep" />
       <div class="ed-history">
         <button class="icon-btn" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo.value} onClick={onUndo}>

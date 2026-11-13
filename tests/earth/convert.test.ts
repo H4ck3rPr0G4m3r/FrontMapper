@@ -48,6 +48,23 @@ describe('tiles', () => {
     await expect(p).rejects.toMatchObject({ failed: ['b'] });
     expect(attempts.get('b')).toBe(4);
   });
+
+  it('stops starting new tiles once one has failed for good, so offline fails fast', async () => {
+    let calls = 0;
+    const fetch = (async () => { calls++; throw new TypeError('offline'); }) as unknown as typeof globalThis.fetch;
+    const urls = Array.from({ length: 200 }, (_, i) => `t${i}`);
+    const p = fetchTiles(urls, (b) => b, { fetch, retries: 3, concurrency: 8, signal: new AbortController().signal, retryDelayMs: 0 });
+    await expect(p).rejects.toBeInstanceOf(TileFetchError);
+    expect(calls).toBeLessThanOrEqual(8 * 4);
+  });
+
+  it('does not retry a tile the server says does not exist', async () => {
+    let calls = 0;
+    const fetch = (async () => { calls++; return new Response('', { status: 404 }); }) as unknown as typeof globalThis.fetch;
+    const p = fetchTiles(['x'], (b) => b, { fetch, retries: 3, concurrency: 8, signal: new AbortController().signal, retryDelayMs: 0 });
+    await expect(p).rejects.toMatchObject({ failed: ['x'] });
+    expect(calls).toBe(1);
+  });
 });
 
 // One z10 tile is the whole map: 256 x 256 px, 16 MVT units per pixel.

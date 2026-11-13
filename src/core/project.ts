@@ -1,4 +1,4 @@
-import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
+import { strFromU8, strToU8, unzipSync, zip, zipSync } from 'fflate';
 import type { ElevationCurve, FrameSize, SelOp } from '../earth/types';
 import { decodeImagePng } from './encode';
 import { createGrid, cropToMultipleOf4, type MapGrid } from './grid';
@@ -22,8 +22,8 @@ export interface ProjectState {
 
 const VERSION = 1;
 
-/** `.frontmap` file: a zip of `grid.bin` (terrain bytes then magnitude bytes) and `project.json`. */
-export function saveProject(s: ProjectState): Uint8Array {
+/** The files of a `.frontmap`, copied out of the live state (safe to compress later). */
+function projectFiles(s: ProjectState): Record<string, Uint8Array> {
   const n = s.grid.width * s.grid.height;
   const bin = new Uint8Array(n * 2);
   bin.set(s.grid.terrain, 0);
@@ -38,7 +38,22 @@ export function saveProject(s: ProjectState): Uint8Array {
     earth: s.earth,
     camera: s.camera,
   };
-  return zipSync({ 'grid.bin': bin, 'project.json': strToU8(JSON.stringify(json)) }, { level: 6 });
+  return { 'grid.bin': bin, 'project.json': strToU8(JSON.stringify(json)) };
+}
+
+/** `.frontmap` file: a zip of `grid.bin` (terrain bytes then magnitude bytes) and `project.json`. */
+export function saveProject(s: ProjectState): Uint8Array {
+  return zipSync(projectFiles(s), { level: 6 });
+}
+
+/**
+ * Like saveProject, but takes the snapshot now and compresses off the main thread
+ * (fflate uses workers), so autosaving a huge map doesn't freeze the editor.
+ */
+export function saveProjectAsync(s: ProjectState): () => Promise<Uint8Array> {
+  const files = projectFiles(s);
+  return () =>
+    new Promise((resolve, reject) => zip(files, { level: 1 }, (err, data) => (err ? reject(err) : resolve(data))));
 }
 
 export function openProject(bytes: Uint8Array): ProjectState {

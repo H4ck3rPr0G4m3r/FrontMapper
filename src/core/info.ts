@@ -28,8 +28,45 @@ export const CATEGORIES: string[] = (schema as any).properties.categories.items.
 export const THEMES: string[] = (schema as any).properties.themes.items.enum;
 
 /** Ids and the schema-safe canonical name, derived from whatever the user typed. */
+const LATIN: Record<string, string> = {
+  ø: 'o', Ø: 'O', ł: 'l', Ł: 'L', ß: 'ss', đ: 'd', Đ: 'D', æ: 'ae', Æ: 'Ae', œ: 'oe', Œ: 'Oe',
+  þ: 'th', Þ: 'Th', ð: 'd', Ð: 'D', ı: 'i', ħ: 'h', Ħ: 'H', ŋ: 'ng', Ŋ: 'Ng',
+};
+const CYRILLIC: Record<string, string> = {
+  а: 'a', б: 'b', в: 'v', г: 'g', ґ: 'g', д: 'd', е: 'e', ё: 'e', є: 'ye', ж: 'zh', з: 'z', и: 'i', і: 'i', ї: 'yi',
+  й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh',
+  ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+};
+const GREEK: Record<string, string> = {
+  α: 'a', β: 'v', γ: 'g', δ: 'd', ε: 'e', ζ: 'z', η: 'i', θ: 'th', ι: 'i', κ: 'k', λ: 'l', μ: 'm', ν: 'n',
+  ξ: 'x', ο: 'o', π: 'p', ρ: 'r', σ: 's', ς: 's', τ: 't', υ: 'y', φ: 'f', χ: 'ch', ψ: 'ps', ω: 'o',
+};
+
+/** Latin-letter spelling: accents stripped, other Latin letters, Cyrillic and Greek spelled out. */
+function latinize(name: string): string {
+  let out = '';
+  for (const ch of name.normalize('NFD').replace(/[̀-ͯ]/g, '')) {
+    if (LATIN[ch] !== undefined) { out += LATIN[ch]; continue; }
+    const lower = ch.toLowerCase();
+    const t = CYRILLIC[lower] ?? GREEK[lower];
+    if (t === undefined) out += ch;
+    else out += ch !== lower && t ? t[0].toUpperCase() + t.slice(1) : t;
+  }
+  return out;
+}
+
+/** Short stable tag for names with no Latin spelling (FNV-1a, base 36). */
+function nameTag(name: string): string {
+  let h = 0x811c9dc5;
+  for (const ch of name) h = Math.imul(h ^ ch.codePointAt(0)!, 0x01000193) >>> 0;
+  return h.toString(36).padStart(7, '0').slice(0, 6);
+}
+
 export function deriveIds(name: string): MapIds {
-  const ascii = name.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  let ascii = latinize(name);
+  // Nothing spellable (CJK, Arabic, emoji...): a valid placeholder unique to this name.
+  // The typed name still reaches the game as display_name.
+  if (!/[a-zA-Z0-9]/.test(ascii)) ascii = `Map ${nameTag(name)}`;
   const canonicalName = ascii
     .replace(/[^a-zA-Z0-9\s().-]/g, '')
     .replace(/\s+/g, ' ')

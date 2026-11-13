@@ -19,12 +19,22 @@ export interface ProvinceProps {
 }
 
 const base = () => `${import.meta.env.BASE_URL}data/`;
+
+/** The data file does not exist (as opposed to a download that failed). */
+export class DataMissing extends Error {
+  constructor(path: string) {
+    super(`${path} does not exist.`);
+    this.name = 'DataMissing';
+  }
+}
 const cache = new Map<string, Promise<unknown>>();
 
 function getJson<T>(path: string): Promise<T> {
   let p = cache.get(path) as Promise<T> | undefined;
   if (!p) {
     p = fetch(base() + path).then((r) => {
+      // Dev servers and some hosts answer a missing file with the app's HTML page.
+      if (r.status === 404 || (r.ok && (r.headers.get('content-type') ?? '').includes('text/html'))) throw new DataMissing(path);
       if (!r.ok) throw new Error(`Could not load ${path} (HTTP ${r.status}).`);
       return r.json() as Promise<T>;
     });
@@ -47,12 +57,13 @@ export function loadCountry(a3: string): Promise<FeatureCollection<Geometry, Cou
   return getJson(`countries/${a3}.json`);
 }
 
-/** Provinces/states of one country (empty if Natural Earth has none). */
+/** Provinces/states of one country (empty if Natural Earth has none; a failed download throws). */
 export async function loadProvinces(a3: string): Promise<FeatureCollection<Geometry, ProvinceProps>> {
   try {
     return await getJson(`provinces/${a3}.json`);
-  } catch {
-    return { type: 'FeatureCollection', features: [] };
+  } catch (e) {
+    if (e instanceof DataMissing) return { type: 'FeatureCollection', features: [] };
+    throw e;
   }
 }
 
