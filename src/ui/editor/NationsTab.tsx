@@ -3,6 +3,7 @@ import { ISSUE_TEXT, type Nation } from '../../core/nations';
 import type { EditorController } from '../../state/controller';
 import { flagCodes, flagUrl } from '../../state/flags';
 import { issuesByNation } from '../../state/nationChecks';
+import { CrowdedFix } from './CrowdedFix';
 import { nations, project, selectedNation, tool } from '../../state/store';
 import { cityThreshold, earthNationsBusy, earthNationsNote, nationsFromEarth, type EarthNationSource } from '../../state/earthNationOps';
 
@@ -22,6 +23,7 @@ export function NationsTab({ controller }: { controller: EditorController }) {
             No nations yet. Pick the spawn tool <kbd>N</kbd> and click on land to place one.
           </p>
         )}
+        <CrowdedFix />
         {list.length > 0 && (
           <ul class="nations">
             {list.map((n) => (

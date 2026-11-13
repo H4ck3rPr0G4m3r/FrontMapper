@@ -6,6 +6,7 @@ import { acceptedChecks } from '../../state/checks';
 import type { EditorController } from '../../state/controller';
 import { ISSUE_TEXT, type NationIssueKind } from '../../core/nations';
 import { currentNationIssues } from '../../state/nationChecks';
+import { CrowdedFix } from './CrowdedFix';
 import { infoErrors } from '../../state/mapOps';
 import { nations, project } from '../../state/store';
 
@@ -137,6 +138,7 @@ function NationSummary() {
           ))}
         </ul>
       )}
+      <CrowdedFix />
     </section>
   );
 }
