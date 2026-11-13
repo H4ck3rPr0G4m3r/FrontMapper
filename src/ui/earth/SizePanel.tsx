@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { kmPerPx } from '../../earth/projection';
 import { formatCount, sizeTier } from '../../core/size';
-import { curve, frameSize, includeOutliers, linked, outliers, recomputeFrame, setFrameSide } from '../../state/earthState';
+import { curve, frameProblem, frameSize, includeOutliers, linked, outliers, recomputeFrame, setFrameSide } from '../../state/earthState';
 
 function SideInput({ label, value, onCommit }: { label: string; value: number; onCommit: (v: number) => void }) {
   const [text, setText] = useState(String(value));
@@ -64,6 +64,7 @@ export function SizePanel() {
               <dt>Pixels</dt>
               <dd>{`${formatCount(fs.width * fs.height)}, ${sizeTier(fs.width * fs.height)}`}</dd>
             </dl>
+            {frameProblem.value && <p class="size-problem" role="alert">{frameProblem.value}</p>}
           </>
         )}
         {out.length > 0 && (

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { terrariumPng } from '../fixtures/tiles/make';
 
 // 1x1 dark PNG standing in for satellite tiles, so tests never hit the network.
 const TILE = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
@@ -57,4 +58,54 @@ test('dragging the frame edge widens the map', async ({ page }) => {
   await page.mouse.move(b.x + b.width / 2 + 120, b.y + b.height / 2, { steps: 6 });
   await page.mouse.up();
   await expect.poll(async () => Number(await page.getByLabel('Width', { exact: true }).inputValue())).toBeGreaterThan(before);
+});
+
+const HILLS = Buffer.from(terrariumPng(() => 600));
+
+/** Stub the live tile services: no water anywhere (all land), 600 m everywhere. */
+async function stubTiles(page: Page, elevation: { fail: boolean }) {
+  await page.route('https://tiles.openfreemap.org/planet', (r) => r.fulfill({ json: { tiles: ['https://tiles.openfreemap.org/test/{z}/{x}/{y}.pbf'], maxzoom: 14 } }));
+  await page.route('https://tiles.openfreemap.org/test/**', (r) => r.fulfill({ body: Buffer.alloc(0), contentType: 'application/vnd.mapbox-vector-tile' }));
+  await page.route('**/terrarium/**', (r) => (elevation.fail ? r.fulfill({ status: 503, body: '' }) : r.fulfill({ body: HILLS, contentType: 'image/png' })));
+}
+
+async function selectSmallIndonesia(page: Page) {
+  await page.getByPlaceholder('Search a country or province').fill('Indonesia');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.sel-tag', { hasText: 'Indonesia' })).toBeVisible();
+  await page.getByLabel('Width', { exact: true }).fill('400');
+  await page.getByLabel('Width', { exact: true }).press('Enter');
+  await expect(page.getByLabel('Width', { exact: true })).toHaveValue('400');
+}
+
+test('convert builds the map and opens it in the editor', async ({ page }) => {
+  await open(page);
+  await stubTiles(page, { fail: false });
+  await selectSmallIndonesia(page);
+  const height = await page.getByLabel('Height', { exact: true }).inputValue();
+  await page.getByRole('button', { name: 'Convert to map' }).click();
+  await expect(page.locator('.ed-title')).toContainText('Indonesia', { timeout: 30_000 });
+  await expect(page.locator('.ed-title small')).toHaveText(`400 × ${height}`);
+});
+
+test('a failed download stops with Retry and keeps the selection', async ({ page }) => {
+  test.setTimeout(60_000);
+  const elevation = { fail: true };
+  await open(page);
+  await stubTiles(page, elevation);
+  await selectSmallIndonesia(page);
+  await page.getByRole('button', { name: 'Convert to map' }).click();
+  const dialog = page.getByRole('dialog', { name: "Couldn't convert Indonesia" });
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  await expect(dialog.getByRole('alert')).toContainText(/elevation tiles didn't download/);
+  await dialog.getByRole('button', { name: 'Back to picker' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('.sel-tag', { hasText: 'Indonesia' })).toBeVisible();
+  await expect(page.getByLabel('Width', { exact: true })).toHaveValue('400');
+
+  await page.getByRole('button', { name: 'Convert to map' }).click();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  elevation.fail = false;
+  await dialog.getByRole('button', { name: 'Retry' }).click();
+  await expect(page.locator('.ed-title')).toContainText('Indonesia', { timeout: 30_000 });
 });

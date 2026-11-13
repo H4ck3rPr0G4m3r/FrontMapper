@@ -5,6 +5,7 @@ import { canConvert, countriesLow, earthOps, earthTool, ensureProvinces, provinc
 import { EarthMap } from './EarthMap';
 import { SearchBox, type SearchHit } from './SearchBox';
 import { SizePanel } from './SizePanel';
+import { ConvertProgress } from './ConvertProgress';
 import './earth.css';
 
 const TOOLS: { id: EarthTool; icon: string; label: string; text?: string }[] = [
@@ -120,6 +121,7 @@ export function EarthPicker({ onBack, onConvert }: Props) {
           </div>
         </aside>
       </div>
+      <ConvertProgress />
     </div>
   );
 }

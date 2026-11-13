@@ -3,6 +3,7 @@ import type { FeatureCollection, Geometry } from 'geojson';
 import { autoFrame, fitSize, frameAround, lonLatToMerc, partsOf, setSide, type Part } from '../earth/projection';
 import { loadCountriesLow, loadProvinces, type CountryProps, type ProvinceProps } from '../earth/regions';
 import { hasSelection } from '../earth/selectionOps';
+import { sizeProblem } from '../core/size';
 import { DEFAULT_CURVE, type ElevationCurve, type FrameSize, type LonLat, type SelOp, type SelShape } from '../earth/types';
 
 export type EarthTool = 'country' | 'province' | 'rect' | 'lasso' | 'circle';
@@ -17,7 +18,10 @@ export const includeOutliers = signal(false);
 /** Output width remembered across selection changes. */
 export const preferredWidth = signal(4000);
 
-export const canConvert = computed(() => hasSelection(earthOps.value) && !!frameSize.value);
+/** Why the framed map can't be built (too large), or null. */
+export const frameProblem = computed(() => (frameSize.value ? sizeProblem(frameSize.value.width, frameSize.value.height) : null));
+
+export const canConvert = computed(() => hasSelection(earthOps.value) && !!frameSize.value && !frameProblem.value);
 
 export const countriesLow = signal<FeatureCollection<Geometry, CountryProps> | null>(null);
 export const provincesByCountry = signal<Map<string, FeatureCollection<Geometry, ProvinceProps>>>(new Map());

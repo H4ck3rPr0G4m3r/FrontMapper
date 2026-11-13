@@ -4,6 +4,7 @@ import { backToStart, screen } from '../state/session';
 import { Editor } from './editor/Editor';
 import { StartScreen } from './start/StartScreen';
 import { EarthPicker } from './earth/EarthPicker';
+import { cancelConvert, startConvert } from '../state/conversion';
 
 const params = new URLSearchParams(location.search);
 const fixture = import.meta.env.DEV ? params.get('fixture') : null;
@@ -36,6 +37,6 @@ export function App() {
     );
   }
   if (screen.value === 'editor') return <Editor />;
-  if (screen.value === 'earth') return <EarthPicker onBack={() => (screen.value = 'start')} onConvert={() => {}} />;
+  if (screen.value === 'earth') return <EarthPicker onBack={() => { cancelConvert(); screen.value = 'start'; }} onConvert={startConvert} />;
   return <StartScreen />;
 }
