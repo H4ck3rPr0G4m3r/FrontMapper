@@ -1,3 +1,1 @@
-{"type":"FeatureCollection", "features": [
-{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[117.7539,15.1544],[117.7519,15.1519],[117.7539,15.1501],[117.7557,15.1519],[117.7539,15.1544]]]},"properties":{"id":"SCR","name":"Scarborough Reef","iso2":""}}
-]}
+{"type":"Topology","arcs":[[[5300,9999],[4699,-5780],[-4699,-4219],[-5300,4219],[5300,5780]]],"transform":{"scale":[3.830383038311603e-7,4.2904290429035287e-7],"translate":[117.75185999999998,15.15008]},"objects":{"country":{"type":"GeometryCollection","geometries":[{"arcs":[[0]],"type":"Polygon","properties":{"id":"SCR","name":"Scarborough Reef","iso2":"","over":true}}]}}}

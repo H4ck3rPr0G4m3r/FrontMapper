@@ -7,9 +7,9 @@ test('Export refuses invalid info, then downloads the map zip', async ({ page })
   await page.waitForFunction(() => (window as any).__fm?.ready, null, { timeout: 20_000 });
   await page.getByRole('button', { name: 'Export', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Fix the map info first');
+  await expect(page.getByRole('tab', { name: 'Info' })).toHaveAttribute('aria-selected', 'true'); // opens where it is fixed
   await page.getByRole('button', { name: 'Dismiss' }).click();
 
-  await page.getByRole('tab', { name: 'Info' }).click();
   await page.getByLabel('Map name').fill('Test Sea');
   await page.getByRole('group', { name: 'Categories' }).getByRole('button', { name: 'Fictional' }).click();
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export', exact: true }).click()]);

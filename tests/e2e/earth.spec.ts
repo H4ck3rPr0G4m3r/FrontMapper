@@ -34,6 +34,14 @@ test('search selects Indonesia and sizes the frame', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Convert to map' })).toBeEnabled();
 });
 
+test('selected countries show their detailed borders', async ({ page }) => {
+  await open(page);
+  expect(await page.evaluate(() => (window as any).__earth.detailed())).not.toContain('IDN');
+  await page.getByPlaceholder('Search a country or province').fill('Indonesia');
+  await page.keyboard.press('Enter');
+  await expect.poll(() => page.evaluate(() => (window as any).__earth.detailed())).toContain('IDN');
+});
+
 test('shift-click adds a second country', async ({ page }) => {
   await open(page);
   await page.getByPlaceholder('Search a country or province').fill('Indonesia');
@@ -140,4 +148,31 @@ test('nations come from cities and countries, and survive a re-convert', async (
   await expect(page.locator('.ed-title')).toContainText('Indonesia', { timeout: 30_000 });
   await page.getByRole('tab', { name: /Nations/ }).click();
   await expect(page.getByLabel('Nation name')).toHaveCount(count);
+});
+
+test('one click removes auto-placed nations that crowd each other, with undo', async ({ page }) => {
+  test.setTimeout(60_000);
+  await open(page);
+  await stubTiles(page, { fail: false });
+  await selectSmallIndonesia(page);
+  await page.getByRole('button', { name: 'Convert to map' }).click();
+  await expect(page.locator('.ed-title')).toContainText('Indonesia', { timeout: 30_000 });
+  await page.getByRole('tab', { name: /Nations/ }).click();
+  await page.getByLabel('Minimum city population').fill('300000');
+  await page.getByRole('button', { name: 'Place cities' }).click();
+  await expect(page.getByRole('status')).toContainText(/Placed \d+ cities\./);
+  const before = await page.getByLabel('Nation name').count();
+
+  const fix = page.getByRole('button', { name: /^Remove \d+ crowded$/ });
+  await expect(fix).toBeVisible();
+  const n = Number((await fix.textContent())!.match(/\d+/)![0]);
+  await fix.click();
+  await expect(page.getByLabel('Nation name')).toHaveCount(before - n);
+  await expect(page.getByText(`Removed ${n} crowded nations.`)).toBeVisible();
+  await page.getByRole('tab', { name: /Checks/ }).click();
+  await expect(page.getByText(/Too close to another nation/)).toHaveCount(0);
+
+  await page.getByRole('tab', { name: /Nations/ }).click();
+  await page.getByRole('button', { name: 'Undo removing crowded nations' }).click();
+  await expect(page.getByLabel('Nation name')).toHaveCount(before);
 });

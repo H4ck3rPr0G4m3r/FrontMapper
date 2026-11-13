@@ -3,6 +3,7 @@ import { createGrid } from '../core/grid';
 import { newNationId } from '../core/nations';
 import type { ProjectState } from '../core/project';
 import { analysis, analysisPending } from './analysis';
+import { acceptedChecks, NO_ACCEPTED } from './checks';
 import { canRedo, canUndo, meta, nations, project, selectedNation, selection, sources, view } from './store';
 
 export type Screen = 'start' | 'earth' | 'editor';
@@ -20,8 +21,9 @@ export function openInEditor(s: ProjectState) {
   canRedo.value = false;
   view.value = 'game';
   meta.value = s.meta;
+  acceptedChecks.value = s.accepted ?? NO_ACCEPTED;
   nations.value = s.nations;
-  sources.value = s.earth ? ['osm', 'terrain-tiles', 'natural-earth'] : [];
+  sources.value = s.earth ? ['osm', 'terrain-tiles', 'geoboundaries', 'natural-earth'] : [];
   project.value = { id: s.id, grid: s.grid, earth: s.earth, camera: s.camera };
   screen.value = 'editor';
 }

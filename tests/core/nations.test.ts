@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { LAND, VOID, createGrid } from '../../src/core/grid';
 import { simulateExport } from '../../src/core/generator';
-import { nationIssues, remapNations, type Nation } from '../../src/core/nations';
+import { crowdedExtras, nationIssues, remapNations, type Nation } from '../../src/core/nations';
 
 const flags = new Set(['id', 'my', 'DE-BB']);
 const nation = (id: string, x: number, y: number, extra: Partial<Nation> = {}): Nation => ({
@@ -61,5 +61,23 @@ describe('remapNations', () => {
     expect([out[0].x, out[0].y]).toEqual([50, 20]);
     const moved = remapNations([nation('a', 30, 30)], { sx: 1, sy: 1, ox: -10, oy: -10 }, 40, 40);
     expect([moved[0].x, moved[0].y]).toEqual([20, 20]);
+  });
+});
+
+describe('crowdedExtras', () => {
+  const at = (id: string, x: number, source: Nation['source']): Nation => ({ id, name: id, x, y: 0, flag: '', source });
+
+  it('picks the auto-placed nations to drop so no two are too close, keeping earlier (bigger) cities', () => {
+    const list = [at('jakarta', 0, 'city'), at('bekasi', 10, 'city'), at('depok', 20, 'city'), at('bogor', 35, 'city')];
+    expect(crowdedExtras(list, 30)).toEqual(['bekasi', 'depok']);
+  });
+
+  it('keeps custom nations, then countries, then provinces over cities', () => {
+    const list = [at('city', 0, 'city'), at('prov', 5, 'province'), at('country', 50, 'country'), at('mine', 60, 'custom')];
+    expect(crowdedExtras(list, 30).sort()).toEqual(['city', 'country']);
+  });
+
+  it('never drops custom nations, even when they crowd each other', () => {
+    expect(crowdedExtras([at('a', 0, 'custom'), at('b', 1, 'custom')], 30)).toEqual([]);
   });
 });

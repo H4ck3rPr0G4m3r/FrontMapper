@@ -1,32 +1,18 @@
 import type { ComponentChildren } from 'preact';
-import { computed, signal } from '@preact/signals';
+import { signal } from '@preact/signals';
 import { formatCount, sizeTier, TIERS } from '../../core/size';
 import { analysis, analysisPending } from '../../state/analysis';
+import { acceptedChecks } from '../../state/checks';
 import type { EditorController } from '../../state/controller';
 import { ISSUE_TEXT, type NationIssueKind } from '../../core/nations';
 import { currentNationIssues } from '../../state/nationChecks';
+import { CrowdedFix } from './CrowdedFix';
 import { infoErrors } from '../../state/mapOps';
 import { nations, project } from '../../state/store';
 
-/** Accepted warnings, keyed by a signature of the bodies they covered. */
-const accepted = signal<{ islands: string | null; lakes: string | null }>({ islands: null, lakes: null });
 const showIndex = signal({ islands: 0, lakes: 0 });
 
-const signature = (bodies: Int32Array[]) => bodies.map((b) => `${b[0]}:${b.length}`).join(',');
-
-/** Number of problem rows the Checks tab currently shows (accepted warnings do not count). */
-export const openChecks = computed(() => {
-  const kinds = new Set(currentNationIssues.value.map((i) => i.kind));
-  let n = kinds.size + infoErrors.value.length;
-  const a = analysis.value;
-  if (a) {
-    const islands = a.sim.removedIslands.map((b) => b.cells);
-    const lakes = a.sim.removedLakes.map((b) => b.cells);
-    if (islands.length && accepted.value.islands !== signature(islands)) n++;
-    if (lakes.length && accepted.value.lakes !== signature(lakes)) n++;
-  }
-  return n;
-});
+const setAccepted = (kind: 'islands' | 'lakes', on: boolean) => (acceptedChecks.value = { ...acceptedChecks.value, [kind]: on });
 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
@@ -44,8 +30,6 @@ export function ChecksTab({ controller, children }: Props) {
   }
   const islands = a.sim.removedIslands.map((b) => b.cells);
   const lakes = a.sim.removedLakes.map((b) => b.cells);
-  const islandSig = signature(islands);
-  const lakeSig = signature(lakes);
   const pixels = p.grid.width * p.grid.height;
   const tier = sizeTier(pixels);
 
@@ -64,20 +48,31 @@ export function ChecksTab({ controller, children }: Props) {
         </h4>
         <Issue
           count={islands.length}
-          accepted={accepted.value.islands === islandSig}
+          accepted={acceptedChecks.value.islands}
+          onUndo={() => setAccepted('islands', false)}
+          undoLabel="Undo accepting islands"
           text={islands.length ? `${islands.length} ${plural(islands.length, 'island under 30 px gets', 'islands under 30 px get')} deleted` : 'No islands get deleted'}
         >
           <button class="btn sm" onClick={() => show('islands', islands)}>Show</button>
           <button class="btn sm" onClick={() => controller.growIslands(islands)}>Grow to 30</button>
-          <button class="btn sm" onClick={() => (accepted.value = { ...accepted.value, islands: islandSig })}>Accept</button>
+          <button class="btn sm" onClick={() => setAccepted('islands', true)}>Accept</button>
         </Issue>
         <Issue
           count={lakes.length}
-          accepted={accepted.value.lakes === lakeSig}
+          accepted={acceptedChecks.value.lakes}
+          onUndo={() => setAccepted('lakes', false)}
+          undoLabel="Undo accepting lakes"
           text={lakes.length ? `${lakes.length} ${plural(lakes.length, 'lake under 200 px fills', 'lakes under 200 px fill')} in` : 'No lakes fill in'}
         >
           <button class="btn sm" onClick={() => show('lakes', lakes)}>Show</button>
-          <button class="btn sm" onClick={() => (accepted.value = { ...accepted.value, lakes: lakeSig })}>Accept</button>
+          <button
+            class="btn sm"
+            onClick={() => controller.growRivers()}
+            title="Joins river pieces up to 3 px apart (or that close to the sea) and widens rivers until they stay. Round ponds are left alone."
+          >
+            Grow rivers
+          </button>
+          <button class="btn sm" onClick={() => setAccepted('lakes', true)}>Accept</button>
         </Issue>
       </section>
 
@@ -150,11 +145,12 @@ function NationSummary() {
           ))}
         </ul>
       )}
+      <CrowdedFix />
     </section>
   );
 }
 
-function Issue(props: { count: number; accepted: boolean; text: string; children: ComponentChildren }) {
+function Issue(props: { count: number; accepted: boolean; onUndo: () => void; undoLabel: string; text: string; children: ComponentChildren }) {
   if (!props.count) {
     return (
       <div class="issue ok">
@@ -168,6 +164,7 @@ function Issue(props: { count: number; accepted: boolean; text: string; children
       <div class="issue accepted">
         <i aria-hidden="true" class="ph ph-check" />
         <span>{props.text} (accepted)</span>
+        <button class="undo-accept" aria-label={props.undoLabel} onClick={props.onUndo}>Undo</button>
       </div>
     );
   }

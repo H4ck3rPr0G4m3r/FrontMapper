@@ -11,6 +11,12 @@ export interface EarthSource {
   curve: ElevationCurve;
 }
 
+/** Removal warnings the user accepted on the Checks tab. */
+export interface AcceptedChecks {
+  islands: boolean;
+  lakes: boolean;
+}
+
 export interface ProjectState {
   id: string;
   grid: MapGrid;
@@ -18,6 +24,7 @@ export interface ProjectState {
   nations: Nation[];
   earth?: EarthSource;
   camera?: { x: number; y: number; zoom: number };
+  accepted?: AcceptedChecks;
 }
 
 const VERSION = 1;
@@ -37,6 +44,7 @@ function projectFiles(s: ProjectState): Record<string, Uint8Array> {
     nations: s.nations,
     earth: s.earth,
     camera: s.camera,
+    accepted: s.accepted,
   };
   return { 'grid.bin': bin, 'project.json': strToU8(JSON.stringify(json)) };
 }
@@ -68,7 +76,7 @@ export function openProject(bytes: Uint8Array): ProjectState {
   const grid = createGrid(width, height);
   grid.terrain.set(bin.subarray(0, n));
   grid.mag.set(bin.subarray(n));
-  return { id: json.id, grid, meta: json.meta, nations: json.nations ?? [], earth: json.earth, camera: json.camera };
+  return { id: json.id, grid, meta: json.meta, nations: json.nations ?? [], earth: json.earth, camera: json.camera, accepted: json.accepted };
 }
 
 /**

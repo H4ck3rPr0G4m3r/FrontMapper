@@ -33,8 +33,17 @@ Some machines intercept TLS. The npm scripts that reach the network run Node wit
 
 1. **Coastlines:** water polygons from the OpenFreeMap `water` layer (OpenStreetMap), rasterised at the map's resolution.
 2. **Elevation:** AWS Terrain Tiles (Terrarium), mapped to OpenFront magnitudes with the curve in the picker. The defaults are plains up to 300 m, highlands up to 1500 m, and mountains above that, peaking at 4000 m.
-3. **Borders:** Natural Earth countries and provinces. Land the borders miss, such as small islands, goes to the nearest country.
+3. **Borders:** geoBoundaries (CGAZ) country and province shapes, labelled with Natural Earth's ids, names and
+   flags. Territories geoBoundaries folds into their sovereign (Puerto Rico, the Faroe Islands...) are split
+   back out; ones on a shared mainland (Hong Kong, Gibraltar...) keep Natural Earth outlines. Land the borders
+   miss, such as small islands, goes to the nearest country.
 4. Selected land becomes land. Other land in the frame becomes impassable void, and water stays water.
+   Small lakes and river pieces that touch only void become void too: the generator would fill them
+   with void anyway, so they would only clutter the Checks tab.
+
+Rivers narrower than a pixel come out as broken pieces, which the generator fills in as small lakes.
+**Grow rivers** on the Checks tab joins pieces up to 3 px apart (or that close to the sea) and widens
+waterways until they survive export; round ponds are left alone.
 
 A tile that fails to download after 3 retries stops the conversion with a Retry. It never becomes land, water or 0 m.
 
@@ -44,7 +53,8 @@ A tile that fails to download after 3 retries stops the conversion with a Retry.
 | --- | --- | --- |
 | Coastlines, lakes | © OpenStreetMap contributors, via OpenFreeMap / OpenMapTiles | ODbL |
 | Elevation | AWS Terrain Tiles (Mapzen Terrarium) | see the [attribution list](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) |
-| Borders, provinces, cities | Natural Earth 10m | public domain |
+| Borders, provinces | [geoBoundaries](https://www.geoboundaries.org) CGAZ (Runfola et al. 2020) | CC BY 4.0 / ODbL |
+| Country ids and names, some territories, cities | Natural Earth 10m | public domain |
 | Satellite imagery (display only) | Esri, Maxar, Earthstar Geographics | display in the picker only |
 | Flags, `info.json` schema | OpenFrontIO | AGPL-3.0 |
 

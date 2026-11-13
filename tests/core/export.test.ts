@@ -51,6 +51,13 @@ describe('creditsSnippet', () => {
     expect(s).toContain('tilezen/joerd attribution');
     expect(s).not.toContain('Natural Earth');
   });
+
+  it('credits geoBoundaries for borders, as its licence asks', () => {
+    const s = creditsSnippet(['osm', 'terrain-tiles', 'geoboundaries', 'natural-earth'], 'Indonesia');
+    expect(s).toContain('[geoBoundaries](https://www.geoboundaries.org)');
+    expect(s).toContain('CC BY 4.0');
+    expect(s).toContain('https://doi.org/10.1371/journal.pone.0231866');
+  });
 });
 
 describe('large maps', () => {

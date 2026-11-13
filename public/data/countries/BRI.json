@@ -1,3 +1,1 @@
-{"type":"FeatureCollection", "features": [
-{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-57.6425,-30.1931],[-57.6028,-30.1905],[-57.6117,-30.183],[-57.634,-30.1836],[-57.6425,-30.1931]]]},"properties":{"id":"BRI","name":"Brazilian I.","iso2":"br"}}
-]}
+{"type":"Topology","arcs":[[[0,0],[2142,9387],[5612,612],[2245,-7462],[-9999,-2537]]],"transform":{"scale":[0.000003968396839684384,0.0000010131013101310326],"translate":[-57.64247000000001,-30.19309]},"objects":{"country":{"type":"GeometryCollection","geometries":[{"arcs":[[0]],"type":"Polygon","properties":{"id":"BRI","name":"Brazilian I.","iso2":"br","over":true}}]}}}

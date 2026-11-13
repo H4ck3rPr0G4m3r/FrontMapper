@@ -14,8 +14,10 @@ describe('project files', () => {
       meta: { name: 'Java', categories: ['asia'] },
       nations: [{ id: 'n', name: 'Jakarta', x: 5, y: 0, flag: 'id', source: 'city', lonLat: [106.8, -6.2] }],
       camera: { x: 20, y: 10, zoom: 2 },
+      accepted: { islands: false, lakes: true },
     };
     const back = openProject(saveProject(s));
+    expect(back.accepted).toEqual({ islands: false, lakes: true });
     expect(back.grid.terrain).toEqual(grid.terrain);
     expect(back.grid.mag).toEqual(grid.mag);
     expect(back.meta).toEqual(s.meta);

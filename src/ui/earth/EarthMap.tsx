@@ -8,7 +8,7 @@ import type { CountryProps, ProvinceProps } from '../../earth/regions';
 import { addShape, selectedRegionIds, toggleRegion } from '../../earth/selectionOps';
 import type { LonLat, SelShape } from '../../earth/types';
 import {
-  countriesLow, earthOps, earthTool, ensureCountries, ensureProvinces, frameSize, includeOutliers, moveFrameEdge, provincesByCountry, recomputeFrame,
+  countriesLow, earthOps, earthTool, ensureCountries, ensureCountryDetail, ensureProvinces, frameSize, includeOutliers, moveFrameEdge, provincesByCountry, recomputeFrame,
 } from '../../state/earthState';
 
 const SHIFTS = [-360, 0, 360];
@@ -136,6 +136,8 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
       for (const f of fc.features) addFeature(f, 'country', f.properties.id);
       loaded = true;
       restyle();
+      for (const id of selectedRegionIds(earthOps.value).country) showDetail(id);
+      detailInView();
     });
 
     // Provinces of the countries in view, loaded on demand in Province mode or when selected.
@@ -160,6 +162,34 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
       }
     };
     map.on('moveend', provincesInView);
+
+    // The world outlines are coarse; a country switches to its detailed borders once it is
+    // selected or seen up close, so what is shown matches what gets converted.
+    const detailed = new Set<string>();
+    const DETAIL_ZOOM = 6;
+    const showDetail = (a3: string) => {
+      if (detailed.has(a3) || !regions.has(key('country', a3))) return;
+      detailed.add(a3);
+      ensureCountryDetail(a3)
+        .then((fc) => {
+          const f = fc.features[0];
+          const old = regions.get(key('country', a3));
+          if (disposed || !f || !old) return;
+          old.layers.forEach((l) => l.remove());
+          addFeature({ ...f, properties: { ...f.properties, id: a3 } }, 'country', a3);
+          restyleOne(key('country', a3));
+        })
+        .catch(() => detailed.delete(a3)); // keep the outline; try again later
+    };
+    const detailInView = () => {
+      if (map.getZoom() < DETAIL_ZOOM || !countriesLow.value) return;
+      const view = map.getBounds();
+      for (const f of countriesLow.value.features) {
+        const r = regions.get(key('country', f.properties.id));
+        if (r && r.layers.some((l) => view.intersects((l as any).getBounds()))) showDetail(f.properties.id);
+      }
+    };
+    map.on('moveend', detailInView);
 
     // Drawing tools.
     let drawing: { start: L.LatLng; points: L.LatLng[]; layer: L.Path; mode: 'add' | 'subtract' | 'replace' } | null = null;
@@ -265,6 +295,7 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
         if (loaded) restyle();
         drawShapes();
         for (const op of earthOps.value) if (op.shape.kind === 'region' && op.shape.level === 'province' && op.shape.country) showProvinces(op.shape.country);
+        if (loaded) for (const id of selectedRegionIds(earthOps.value).country) showDetail(id);
       }),
       // Refit the frame only when the selection itself changes, never on data loads, so typed sizes stick.
       // A frame restored for a re-convert (maybe cropped in the editor) is kept until the selection changes.
@@ -310,6 +341,7 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
       ready: true,
       map,
       toPoint: (lat: number, lng: number) => map.latLngToContainerPoint([lat, lng]),
+      detailed: () => [...detailed],
       /** Resolves once the map has been still for a moment (fly-to animations included). */
       idle: async () => {
         for (let still = 0; still < 6; ) {
