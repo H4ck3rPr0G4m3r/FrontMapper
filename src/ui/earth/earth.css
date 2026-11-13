@@ -96,3 +96,4 @@
 @keyframes cv-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .cv-steps li.now i { animation: none; } .cv-scrim, .cv-card { animation: none; } }
 .size-problem { margin: 10px 0 0; padding: 7px 10px; background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: var(--r); color: var(--txt); font-size: 11px; line-height: 1.5; }
+.reconvert-note { margin: 0 0 10px; font-size: 11px; line-height: 1.5; color: var(--dim); }

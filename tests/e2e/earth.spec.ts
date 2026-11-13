@@ -73,6 +73,7 @@ async function selectSmallIndonesia(page: Page) {
   await page.getByPlaceholder('Search a country or province').fill('Indonesia');
   await page.keyboard.press('Enter');
   await expect(page.locator('.sel-tag', { hasText: 'Indonesia' })).toBeVisible();
+  await page.getByRole('button', { name: 'Link width and height' }).click(); // scale the whole country down
   await page.getByLabel('Width', { exact: true }).fill('400');
   await page.getByLabel('Width', { exact: true }).press('Enter');
   await expect(page.getByLabel('Width', { exact: true })).toHaveValue('400');
@@ -108,4 +109,35 @@ test('a failed download stops with Retry and keeps the selection', async ({ page
   elevation.fail = false;
   await dialog.getByRole('button', { name: 'Retry' }).click();
   await expect(page.locator('.ed-title')).toContainText('Indonesia', { timeout: 30_000 });
+});
+
+test('nations come from cities and countries, and survive a re-convert', async ({ page }) => {
+  test.setTimeout(60_000);
+  await open(page);
+  await stubTiles(page, { fail: false });
+  await selectSmallIndonesia(page);
+  await page.getByRole('button', { name: 'Convert to map' }).click();
+  await expect(page.locator('.ed-title')).toContainText('Indonesia', { timeout: 30_000 });
+
+  await page.getByRole('tab', { name: /Nations/ }).click();
+  await page.getByRole('button', { name: 'Countries' }).click();
+  await expect(page.getByRole('status')).toHaveText('Placed 1 country.');
+  await expect(page.getByLabel('Nation name')).toHaveValue('Indonesia');
+
+  await page.getByLabel('Minimum city population').fill('2000000');
+  await page.getByRole('button', { name: 'Place cities' }).click();
+  await expect(page.getByRole('status')).toContainText(/Placed \d+ cities\./);
+  const names = await page.getByLabel('Nation name').evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
+  expect(names).toEqual(expect.arrayContaining(['Indonesia', 'Jakarta', 'Surabaya', 'Medan']));
+  expect(names).not.toContain('Palembang'); // 1.7M, under the threshold
+  const count = names.length;
+
+  await page.getByRole('button', { name: 'Earth', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Back to editor' })).toBeVisible();
+  await expect(page.locator('.reconvert-note')).toContainText('Indonesia');
+  await expect(page.getByLabel('Width', { exact: true })).toHaveValue('400');
+  await page.getByRole('button', { name: 'Convert to map' }).click();
+  await expect(page.locator('.ed-title')).toContainText('Indonesia', { timeout: 30_000 });
+  await page.getByRole('tab', { name: /Nations/ }).click();
+  await expect(page.getByLabel('Nation name')).toHaveCount(count);
 });

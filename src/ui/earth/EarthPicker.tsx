@@ -6,6 +6,7 @@ import { EarthMap } from './EarthMap';
 import { SearchBox, type SearchHit } from './SearchBox';
 import { SizePanel } from './SizePanel';
 import { ConvertProgress } from './ConvertProgress';
+import { reconverting } from '../../state/conversion';
 import './earth.css';
 
 const TOOLS: { id: EarthTool; icon: string; label: string; text?: string }[] = [
@@ -49,11 +50,12 @@ export function EarthPicker({ onBack, onConvert }: Props) {
     names.push({ key: `p:${id}`, label: name, remove: () => (earthOps.value = toggleRegion(earthOps.value, 'province', id, true)) });
   }
   const shapes = earthOps.value.filter((o) => o.shape.kind !== 'region').length;
+  const again = reconverting.value;
 
   return (
     <div class="earth screen-in">
       <header class="earth-top">
-        <button class="icon-btn" aria-label="Back to start" title="Back to start" onClick={onBack}>
+        <button class="icon-btn" aria-label={again ? 'Back to editor' : 'Back to start'} title={again ? 'Back to the editor, unchanged' : 'Back to start'} onClick={onBack}>
           <i aria-hidden="true" class="ph ph-arrow-left" />
         </button>
         <SearchBox onPick={pick} />
@@ -114,6 +116,7 @@ export function EarthPicker({ onBack, onConvert }: Props) {
           <SizePanel />
           </div>
           <div class="earth-foot">
+            {again && <p class="reconvert-note">{`Converting replaces the terrain of “${again.meta.name.trim() || 'Untitled map'}”. Its nations and info are kept.`}</p>}
             <button class="btn primary convert" disabled={!canConvert.value} onClick={onConvert}>
               Convert to map
               <i aria-hidden="true" class="ph-bold ph-arrow-right" />

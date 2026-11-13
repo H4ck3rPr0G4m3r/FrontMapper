@@ -5,6 +5,7 @@ import { ChecksTab } from './ChecksTab';
 import { NationsTab } from './NationsTab';
 import { InfoTab } from './InfoTab';
 import { ExportActions } from './ExportActions';
+import { editOnEarth } from '../../state/conversion';
 import { AutoSaver } from '../../state/autosave';
 import { currentProjectState, exportState, saveProjectFile } from '../../state/projectIO';
 import { backToStart } from '../../state/session';
@@ -141,6 +142,12 @@ export function Editor({ onReady }: Props) {
     void saver.current?.flush();
     backToStart();
   };
+  const goEarth = () => {
+    const s = currentProjectState(controller);
+    if (!s) return;
+    void saver.current?.flush();
+    editOnEarth(s);
+  };
 
   const ready = (r: Renderer, o: Overlay) => {
     controller.attach(r, o);
@@ -151,7 +158,7 @@ export function Editor({ onReady }: Props) {
 
   return (
     <div class="ed screen-in">
-      <TopBar onUndo={() => controller.undo()} onRedo={() => controller.redo()} actions={<ExportActions controller={controller} />} onHome={goHome} />
+      <TopBar onUndo={() => controller.undo()} onRedo={() => controller.redo()} actions={<ExportActions controller={controller} onEarth={p.earth ? goEarth : undefined} />} onHome={goHome} />
       <div class="ed-body">
         <ToolRail />
         <div class="ed-center">

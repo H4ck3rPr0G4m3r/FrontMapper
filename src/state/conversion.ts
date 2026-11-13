@@ -3,8 +3,10 @@ import type { ConvertStep } from '../earth/convert';
 import { selectedRegionIds } from '../earth/selectionOps';
 import type { ConvertWorkerRequest, ConvertWorkerResponse } from '../workers/convert.worker';
 import { newNationId } from '../core/nations';
-import { countriesLow, curve, earthOps, frameSize, provincesByCountry } from './earthState';
-import { openInEditor } from './session';
+import { countriesLow, curve, earthOps, frameSize, provincesByCountry, restoreEarth } from './earthState';
+import { placeByLonLat } from '../earth/earthNations';
+import type { ProjectState } from '../core/project';
+import { openInEditor, screen } from './session';
 
 export type ConvertStatus =
   | { phase: 'running'; title: string; step: ConvertStep; done: number; total: number; finished: ConvertStep[] }
@@ -12,8 +14,25 @@ export type ConvertStatus =
 
 export const convertStatus = signal<ConvertStatus | null>(null);
 
-/** Country of every land pixel from the last conversion (nations from Earth use it). */
-export const lastRegions = signal<{ regionGrid: Int16Array; regionIndex: string[]; width: number; height: number } | null>(null);
+/** The Earth map being re-converted (opened from the editor), or null for a new map. */
+export const reconverting = signal<ProjectState | null>(null);
+
+/** Leave the editor for the picker with this map's selection, to change it and convert again. */
+export function editOnEarth(s: ProjectState) {
+  if (!s.earth) return;
+  restoreEarth(s.earth);
+  reconverting.value = s;
+  screen.value = 'earth';
+}
+
+/** Back out of the picker: to the map being re-converted if there is one, else the start screen. */
+export function leavePicker() {
+  cancelConvert();
+  const s = reconverting.value;
+  reconverting.value = null;
+  if (s) openInEditor(s);
+  else screen.value = 'start';
+}
 
 let worker: Worker | null = null;
 
@@ -36,7 +55,8 @@ export function startConvert() {
   if (!fs) return;
   cancelConvert();
   const req = { fs, ops: earthOps.value, curve: curve.value };
-  const title = selectionTitle();
+  const prev = reconverting.value;
+  const title = prev ? prev.meta.name.trim() || selectionTitle() : selectionTitle();
   const w = (worker = new Worker(new URL('../workers/convert.worker.ts', import.meta.url), { type: 'module' }));
   const finished: ConvertStep[] = [];
   convertStatus.value = { phase: 'running', title, step: 'Coastlines', done: 0, total: 0, finished };
@@ -50,9 +70,12 @@ export function startConvert() {
     } else if (m.type === 'done') {
       stop();
       convertStatus.value = null;
-      const { grid, regionGrid, regionIndex } = m.result;
-      lastRegions.value = { regionGrid, regionIndex, width: grid.width, height: grid.height };
-      openInEditor({ id: newNationId(), grid, meta: { name: title, categories: [] }, nations: [], earth: { ops: req.ops, frameSize: req.fs, curve: req.curve } });
+      const { grid } = m.result;
+      const earth = { ops: req.ops, frameSize: req.fs, curve: req.curve };
+      reconverting.value = null;
+      // Re-converting keeps the map's identity, info and nations; Earth nations follow their lon/lat.
+      if (prev) openInEditor({ id: prev.id, grid, meta: prev.meta, nations: placeByLonLat(prev.nations, req.fs), earth });
+      else openInEditor({ id: newNationId(), grid, meta: { name: title, categories: [] }, nations: [], earth });
     } else {
       stop();
       if (m.aborted) return;

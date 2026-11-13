@@ -3,7 +3,8 @@ import { ISSUE_TEXT, type Nation } from '../../core/nations';
 import type { EditorController } from '../../state/controller';
 import { flagCodes, flagUrl } from '../../state/flags';
 import { issuesByNation } from '../../state/nationChecks';
-import { nations, selectedNation, tool } from '../../state/store';
+import { nations, project, selectedNation, tool } from '../../state/store';
+import { cityThreshold, earthNationsBusy, earthNationsNote, nationsFromEarth, type EarthNationSource } from '../../state/earthNationOps';
 
 function update(id: string, patch: Partial<Nation>) {
   nations.value = nations.value.map((n) => (n.id === id ? { ...n, ...patch } : n));
@@ -13,6 +14,7 @@ export function NationsTab({ controller }: { controller: EditorController }) {
   const list = nations.value;
   return (
     <>
+      {project.value?.earth && <FromEarth />}
       <section class="grp">
         <h4>{list.length ? `${list.length} ${list.length === 1 ? 'nation' : 'nations'}` : 'Nations'}</h4>
         {!list.length && (
@@ -109,5 +111,48 @@ function FlagPicker({ current, onPick }: { current: string; onPick: (code: strin
       {codes && !matches.length && <p class="flag-more">No flag matches that.</p>}
       {all.length > FLAG_PAGE && <p class="flag-more">{`Showing ${FLAG_PAGE} of ${all.length}. Search to narrow it down.`}</p>}
     </div>
+  );
+}
+
+function FromEarth() {
+  const busy = earthNationsBusy.value;
+  const note = earthNationsNote.value;
+  const btn = (source: EarthNationSource, icon: string, label: string, aria?: string) => (
+    <button class="btn sm" disabled={!!busy} aria-label={aria} onClick={() => nationsFromEarth(source)}>
+      <i aria-hidden="true" class={`ph ${busy === source ? 'ph-circle-notch spin' : icon}`} />
+      {label}
+    </button>
+  );
+  return (
+    <section class="grp from-earth">
+      <h4>From Earth</h4>
+      <div class="fe-city">
+        <label>
+          Cities over
+          <input
+            type="number"
+            min={0}
+            step={100000}
+            aria-label="Minimum city population"
+            value={cityThreshold.value}
+            onInput={(e) => {
+              const v = Number((e.currentTarget as HTMLInputElement).value);
+              if (Number.isFinite(v) && v >= 0) cityThreshold.value = v;
+            }}
+          />
+        </label>
+        {btn('city', 'ph-buildings', 'Place', 'Place cities')}
+      </div>
+      <div class="fe-regions">
+        {btn('country', 'ph-globe-hemisphere-east', 'Countries')}
+        {btn('province', 'ph-squares-four', 'Provinces')}
+      </div>
+      <p class="hint-line">Each replaces the nations it placed before. Ones placed by hand stay.</p>
+      {note && (
+        <p class={`fe-note${note.error ? ' err' : ''}`} role="status">
+          {note.text}
+        </p>
+      )}
+    </section>
   );
 }

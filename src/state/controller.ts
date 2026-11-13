@@ -1,3 +1,4 @@
+import { lonLatOf } from '../earth/earthNations';
 import { LAND, type MapGrid, type Rect } from '../core/grid';
 import { History } from '../core/history';
 import { segmentRect, segmentsCovering } from '../core/segments';
@@ -14,7 +15,7 @@ import type { Renderer } from '../render/renderer';
 import type { PointerInfo } from '../ui/editor/EditorCanvas';
 import { newNationId } from '../core/nations';
 import {
-  brushDiameter, busy, canRedo, canUndo, nations, paint, raiseAmount, revision, selectedNation, selection, spacePan, textureOpts, tool, zoom,
+  brushDiameter, busy, canRedo, canUndo, nations, paint, project, raiseAmount, revision, selectedNation, selection, spacePan, textureOpts, tool, zoom,
 } from './store';
 
 const FOOTPRINT_TOOLS = new Set(['brush', 'raise', 'smooth', 'texture']);
@@ -34,6 +35,12 @@ export class EditorController {
   private stroke: { last: { x: number; y: number }; seed: number } | null = null;
   private selectStart: { x: number; y: number } | null = null;
   private dragNation: string | null = null;
+
+  /** On Earth maps, nations remember where they are on Earth so a re-convert keeps them in place. */
+  private earthPos(x: number, y: number): { lonLat?: [number, number] } {
+    const fs = project.value?.earth?.frameSize;
+    return fs ? { lonLat: lonLatOf(fs, x, y) } : {};
+  }
   /** Called when a nation is placed or picked on the map (opens the Nations tab). */
   onNationPicked: (() => void) | null = null;
 
@@ -84,7 +91,7 @@ export class EditorController {
         const list = nations.value;
         let k = list.length + 1;
         while (list.some((n) => n.name === `Nation ${k}`)) k++;
-        nations.value = [...list, { id, name: `Nation ${k}`, x: c.x, y: c.y, flag: '', source: 'custom' }];
+        nations.value = [...list, { id, name: `Nation ${k}`, x: c.x, y: c.y, flag: '', source: 'custom', ...this.earthPos(c.x, c.y) }];
         selectedNation.value = id;
         this.dragNation = id;
       }
@@ -117,7 +124,7 @@ export class EditorController {
     if (this.dragNation && p.buttons & 1) {
       const id = this.dragNation;
       const x = Math.max(0, Math.min(this.grid.width - 1, c.x)), y = Math.max(0, Math.min(this.grid.height - 1, c.y));
-      nations.value = nations.value.map((n) => (n.id === id && (n.x !== x || n.y !== y) ? { ...n, x, y } : n));
+      nations.value = nations.value.map((n) => (n.id === id && (n.x !== x || n.y !== y) ? { ...n, x, y, ...this.earthPos(x, y) } : n));
     } else if (this.selectStart) {
       selection.value = selectionFromCorners(this.selectStart.x, this.selectStart.y, c.x, c.y, this.grid.width, this.grid.height);
     } else if (this.stroke && p.buttons & 1) {

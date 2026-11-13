@@ -3,7 +3,7 @@ import { exportMap, exportState, saveProjectFile } from '../../state/projectIO';
 import type { EditorController } from '../../state/controller';
 import { sideTab } from './SidePanel';
 
-export function ExportActions({ controller }: { controller: EditorController }) {
+export function ExportActions({ controller, onEarth }: { controller: EditorController; onEarth?: () => void }) {
   const st = exportState.value;
   const errors = infoErrors.value;
   const label = st.phase === 'waiting' ? 'Finishing edits…' : st.phase === 'exporting' ? 'Exporting…' : 'Export';
@@ -17,6 +17,12 @@ export function ExportActions({ controller }: { controller: EditorController }) 
   };
   return (
     <div class="export-actions">
+      {onEarth && (
+        <button class="btn" onClick={onEarth} title="Change the selection or frame on Earth and convert again">
+          <i aria-hidden="true" class="ph ph-globe-hemisphere-east" />
+          <span class="btn-label">Earth</span>
+        </button>
+      )}
       <button class="btn" onClick={() => saveProjectFile(controller)} title="Download a .frontmap project file">
         <i aria-hidden="true" class="ph ph-floppy-disk" />
         <span class="btn-label">Save</span>

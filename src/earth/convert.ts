@@ -121,6 +121,29 @@ export function regionRaster(features: { id: string; geometry: Geometry | null }
   return { grid, index };
 }
 
+export interface RegionShape {
+  id: string;
+  geometry: Geometry | null;
+}
+
+/** Every country touching the frame, at full detail (falling back to its outline). */
+export async function countriesNear(fs: FrameSize, regions: RegionLoaders, onProgress?: (done: number, total: number) => void): Promise<RegionShape[]> {
+  const low = await regions.countriesLow();
+  const near = low.features.filter((f) => touchesFrame(f.geometry, fs));
+  let done = 0;
+  onProgress?.(0, near.length);
+  const out = await Promise.all(
+    near.map(async (f) => {
+      const id = f.properties.id;
+      const full = await regions.country(id).catch(() => null);
+      onProgress?.(++done, near.length);
+      const geoms = full?.features.length ? full.features.map((g) => g.geometry) : [f.geometry];
+      return geoms.map((geometry) => ({ id, geometry }));
+    }),
+  );
+  return out.flat();
+}
+
 /** A drawn shape as Mercator rings. */
 function shapeRings(s: Exclude<SelShape, { kind: 'region' }>): number[][] {
   if (s.kind === 'rect') {
@@ -150,23 +173,15 @@ export async function convert(req: ConvertRequest, deps: ConvertDeps, onProgress
   const water = await waterMask(fs, { ...ctx, onProgress: (d, t) => onProgress('Coastlines', d, t) });
   const elev = await elevationGrid(fs, { ...ctx, onProgress: (d, t) => onProgress('Elevation', d, t) });
 
-  // Borders: every country touching the frame at full detail (falling back to the outline).
-  const low = await regions.countriesLow();
-  const near = low.features.filter((f) => touchesFrame(f.geometry, fs));
   const provinceCountries = [...new Set(ops.flatMap((o) => (o.shape.kind === 'region' && o.shape.level === 'province' && o.shape.country ? [o.shape.country] : [])))];
-  const total = near.length + provinceCountries.length;
-  let done = 0;
-  onProgress('Borders', 0, total);
-  const countries = await Promise.all(
-    near.map(async (f) => {
-      const id = f.properties.id;
-      const full = await regions.country(id).catch(() => null);
-      signal.throwIfAborted();
-      onProgress('Borders', ++done, total);
-      const geoms = full?.features.length ? full.features.map((g) => g.geometry) : [f.geometry];
-      return geoms.map((geometry) => ({ id, geometry }));
-    }),
-  );
+  let done = 0, nearCount = 0;
+  const countries = await countriesNear(fs, regions, (d, t) => {
+    nearCount = t;
+    done = d;
+    signal.throwIfAborted();
+    onProgress('Borders', d, t + provinceCountries.length);
+  });
+  const total = nearCount + provinceCountries.length;
   const provinceSets = await Promise.all(
     provinceCountries.map(async (a3) => {
       const fc = await regions.provinces(a3);
@@ -180,7 +195,7 @@ export async function convert(req: ConvertRequest, deps: ConvertDeps, onProgress
   const land = new Uint8Array(N);
   for (let i = 0; i < N; i++) land[i] = water[i] ? 0 : 1;
   onProgress('Building map', 0, steps);
-  const country = regionRaster(countries.flat(), fs, land);
+  const country = regionRaster(countries, fs, land);
   signal.throwIfAborted();
   onProgress('Building map', 1, steps);
 

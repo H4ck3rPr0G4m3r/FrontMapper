@@ -257,6 +257,7 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
       }
     };
 
+    let firstFit = true;
     const stop = [
       effect(() => {
         earthOps.value;
@@ -266,9 +267,24 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
         for (const op of earthOps.value) if (op.shape.kind === 'region' && op.shape.level === 'province' && op.shape.country) showProvinces(op.shape.country);
       }),
       // Refit the frame only when the selection itself changes, never on data loads, so typed sizes stick.
+      // A frame restored for a re-convert (maybe cropped in the editor) is kept until the selection changes.
       effect(() => {
         earthOps.value;
         includeOutliers.value;
+        if (firstFit) {
+          firstFit = false;
+          if (frameSize.peek()) {
+            // Show the restored frame once the frame effect has drawn it.
+            setTimeout(() => {
+              try {
+                if (map.hasLayer(frameRect)) map.fitBounds(frameRect.getBounds(), { padding: [48, 48], animate: false });
+              } catch {
+                /* the picker closed first */
+              }
+            });
+            return;
+          }
+        }
         void recomputeFrame();
       }),
       effect(() => {
