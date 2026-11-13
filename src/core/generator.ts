@@ -140,3 +140,42 @@ export function simulateExport(input: MapGrid): ExportSimulation {
   for (let i = 0; i < n; i++) if (terrain[i] === LAND) landTiles++;
   return { grid: g, removedIslands, removedLakes, landTiles };
 }
+
+/**
+ * Turn small water bodies that touch no land (only void or the map edge) into void.
+ * The generator would fill them with void anyway (all their neighbours are void), so the
+ * exported map is unchanged; they just stop showing up as lakes in Checks.
+ * The largest water body is the generator's ocean and is never touched.
+ */
+export function voidEnclosedLakes(g: MapGrid, min = MIN_LAKE): number {
+  const { width: w, height: h, terrain } = g;
+  const visited = new Uint8Array(w * h);
+  const buf = new IntBuf();
+  const small: Int32Array[] = [];
+  let largest = -1;
+  let largestSmall = -1;
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) {
+      const i = y * w + x;
+      if (terrain[i] !== WATER || visited[i]) continue;
+      const size = floodBody(g, i, WATER, visited, buf);
+      if (size > largest) {
+        largest = size;
+        largestSmall = size < min ? small.length : -1;
+      }
+      if (size < min) small.push(buf.data.slice(0, size));
+    }
+  }
+  let n = 0;
+  small.forEach((cells, k) => {
+    if (k === largestSmall) return;
+    for (const i of cells) {
+      const x = i % w;
+      const y = (i - x) / w;
+      if ((x > 0 && terrain[i - 1] === LAND) || (x < w - 1 && terrain[i + 1] === LAND) || (y > 0 && terrain[i - w] === LAND) || (y < h - 1 && terrain[i + w] === LAND)) return;
+    }
+    for (const i of cells) terrain[i] = VOID;
+    n++;
+  });
+  return n;
+}

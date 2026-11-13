@@ -1,5 +1,6 @@
 import type { FeatureCollection, Geometry, Position } from 'geojson';
 import { createGrid, LAND, VOID, type MapGrid } from '../core/grid';
+import { voidEnclosedLakes } from '../core/generator';
 import type { SourceId } from '../core/credits';
 import { elevationGrid, magFor } from './elevation';
 import { HALF, lonLatToMerc } from './projection';
@@ -247,6 +248,7 @@ export async function convert(req: ConvertRequest, deps: ConvertDeps, onProgress
       grid.mag[i] = magFor(elev[i], curve);
     } else grid.terrain[i] = VOID;
   }
+  voidEnclosedLakes(grid);
   onProgress('Building map', 4, steps);
   return { grid, sources: ['osm', 'terrain-tiles', 'natural-earth'], regionGrid: country.grid, regionIndex: country.index };
 }

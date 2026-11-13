@@ -65,6 +65,13 @@ export function ChecksTab({ controller, children }: Props) {
           text={lakes.length ? `${lakes.length} ${plural(lakes.length, 'lake under 200 px fills', 'lakes under 200 px fill')} in` : 'No lakes fill in'}
         >
           <button class="btn sm" onClick={() => show('lakes', lakes)}>Show</button>
+          <button
+            class="btn sm"
+            onClick={() => controller.growRivers()}
+            title="Joins river pieces up to 3 px apart (or that close to the sea) and widens rivers until they stay. Round ponds are left alone."
+          >
+            Grow rivers
+          </button>
           <button class="btn sm" onClick={() => setAccepted('lakes', true)}>Accept</button>
         </Issue>
       </section>

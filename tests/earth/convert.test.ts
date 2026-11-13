@@ -96,7 +96,9 @@ const s = (p: number) => p * 16;
 const hole = (x0: number, y0: number, x1: number, y1: number): [number, number][] => [[s(x0), s(y0)], [s(x0), s(y1)], [s(x1), s(y1)], [s(x1), s(y0)]];
 const OCEAN: [number, number][] = [[0, 0], [4096, 0], [4096, 4096], [0, 4096]];
 // Ocean everywhere except the A/B island and a 3-pixel islet west of it.
-const waterTile = encodeMvt([{ name: 'water', polygons: [[OCEAN, hole(40, 60, 200, 180), hole(30, 120, 33, 121)]] }]);
+// Plus a 4x4 lake inside each of A and B.
+const lake = (x0: number, y0: number): [number, number][] => [[s(x0), s(y0)], [s(x0 + 4), s(y0)], [s(x0 + 4), s(y0 + 4)], [s(x0), s(y0 + 4)]];
+const waterTile = encodeMvt([{ name: 'water', polygons: [[OCEAN, hole(40, 60, 200, 180), hole(30, 120, 33, 121)], [lake(80, 140)], [lake(150, 140)]] }]);
 const fullOcean = encodeMvt([{ name: 'water', polygons: [[OCEAN]] }]);
 
 function stubFetch(metres: (px: number, py: number) => number) {
@@ -137,6 +139,12 @@ describe('convert', () => {
     expect(regionIndex[regionGrid[at(grid, 31, 120)]]).toBe('AAA');
     expect(regionIndex[regionGrid[at(grid, 160, 100)]]).toBe('BBB');
     expect(sources).toEqual(['osm', 'terrain-tiles', 'natural-earth']);
+  });
+
+  it('small lakes surrounded by void become void (the generator would fill them with void anyway)', async () => {
+    const { grid } = await run(selectA);
+    expect(grid.terrain[at(grid, 81, 141)]).toBe(WATER); // inside the selection
+    expect(grid.terrain[at(grid, 151, 141)]).toBe(VOID); // inside the unselected neighbour
   });
 
   it('subtracting a rectangle turns the selected land inside it into void', async () => {

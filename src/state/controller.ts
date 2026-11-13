@@ -8,6 +8,7 @@ import { floodFill, pickAt } from '../core/tools/fill';
 import { raiseAt, smoothAt } from '../core/tools/sculpt';
 import { textureAt, textureRect } from '../core/tools/texture';
 import { growIsland } from '../core/tools/grow';
+import { growRivers } from '../core/tools/rivers';
 import type { Overlay } from '../render/overlay';
 import type { AnalysisClient } from './analysis';
 import { issuesByNation } from './nationChecks';
@@ -219,6 +220,14 @@ export class EditorController {
     if (busy.value || !bodies.length) return;
     this.history.begin('Grow islands');
     for (const cells of bodies) this.invalidate(growIsland(this.grid, this.history, cells));
+    this.commit();
+  }
+
+  /** Join river pieces and widen waterways so the generator keeps them (one undo step). */
+  growRivers() {
+    if (busy.value) return;
+    this.history.begin('Grow rivers');
+    this.invalidate(growRivers(this.grid, this.history));
     this.commit();
   }
 
