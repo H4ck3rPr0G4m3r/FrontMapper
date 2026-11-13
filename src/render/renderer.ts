@@ -36,6 +36,8 @@ export class Renderer {
   private exp: Layer | null = null;
   private removed: Uint8Array | null = null;
   private removedCells: number[] = [];
+  private sim: ExportSimulation | null = null;
+  private hidden = { islands: false, lakes: false };
   private view: ViewMode = 'game';
   private dirty = true;
   private raf = 0;
@@ -67,6 +69,7 @@ export class Renderer {
     this.disposeLayer(this.main);
     this.disposeLayer(this.exp);
     this.exp = null;
+    this.sim = null;
     this.removed = null;
     this.removedCells = [];
     this.main = this.makeLayer(g);
@@ -77,31 +80,43 @@ export class Renderer {
 
   /** Mark cells the generator removes (red in game/elevation) and keep its result for the export view. */
   setExportSim(sim: ExportSimulation | null) {
-    const g = this.main?.grid;
-    if (!g) return;
+    if (!this.main) return;
+    this.disposeLayer(this.exp);
+    this.sim = sim;
+    this.exp = sim ? this.makeLayer(sim.grid) : null;
+    this.refreshMarks();
+    if (this.view === 'export') this.enqueueAll();
+  }
+
+  /** Stop (or resume) marking kinds of removal the user accepted. */
+  setHiddenMarks(hidden: { islands: boolean; lakes: boolean }) {
+    if (hidden.islands === this.hidden.islands && hidden.lakes === this.hidden.lakes) return;
+    this.hidden = { islands: hidden.islands, lakes: hidden.lakes };
+    if (this.main) this.refreshMarks();
+  }
+
+  private refreshMarks() {
+    const g = this.main!.grid;
     const cols = segmentCols(g.width);
     const changed = new Set<number>();
     const segOf = (c: number) => Math.floor(c / g.width / SEGMENT) * cols + Math.floor((c % g.width) / SEGMENT);
-    const prev = this.removedCells;
-    for (const c of prev) changed.add(segOf(c));
-    this.disposeLayer(this.exp);
-    this.exp = null;
+    for (const c of this.removedCells) changed.add(segOf(c));
     this.removed = null;
     this.removedCells = [];
+    const sim = this.sim;
     if (sim) {
       const removed = new Uint8Array(g.width * g.height);
-      for (const b of [...sim.removedIslands, ...sim.removedLakes])
+      const bodies = [...(this.hidden.islands ? [] : sim.removedIslands), ...(this.hidden.lakes ? [] : sim.removedLakes)];
+      for (const b of bodies)
         for (const c of b.cells) {
           removed[c] = 1;
           this.removedCells.push(c);
           changed.add(segOf(c));
         }
       this.removed = removed;
-      this.exp = this.makeLayer(sim.grid);
     }
     // Only segments whose red marks changed need re-uploading; the export layer is rebuilt lazily.
     for (const seg of changed) this.enqueueSeg(this.main!, seg, 'main');
-    if (this.view === 'export') this.enqueueAll();
   }
 
   setView(v: ViewMode) {

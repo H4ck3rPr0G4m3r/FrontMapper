@@ -74,7 +74,7 @@ export function startConvert() {
       const earth = { ops: req.ops, frameSize: req.fs, curve: req.curve };
       reconverting.value = null;
       // Re-converting keeps the map's identity, info and nations; Earth nations follow their lon/lat.
-      if (prev) openInEditor({ id: prev.id, grid, meta: prev.meta, nations: placeByLonLat(prev.nations, req.fs), earth });
+      if (prev) openInEditor({ id: prev.id, grid, meta: prev.meta, nations: placeByLonLat(prev.nations, req.fs), earth, accepted: prev.accepted });
       else openInEditor({ id: newNationId(), grid, meta: { name: title, categories: [] }, nations: [], earth });
     } else {
       stop();

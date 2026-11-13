@@ -83,6 +83,9 @@
 .issue .row { display: flex; gap: 4px; flex-wrap: wrap; padding-left: 16px; }
 .issue.ok, .issue.accepted { display: flex; gap: 8px; align-items: center; color: var(--dim); min-height: 20px; }
 .issue.ok i, .issue.accepted i { color: var(--txt); font-size: 13px; }
+.undo-accept { margin-left: auto; padding: 2px 4px; border: 0; background: none; color: var(--dim); font: inherit; font-size: 11px; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; border-radius: 2px; }
+.undo-accept:hover { color: var(--txt); }
+.undo-accept:focus-visible { outline: 2px solid var(--sel); outline-offset: 1px; }
 .tiers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; margin-top: 12px; font-size: 10px; color: var(--faint); }
 .tiers div { padding-top: 6px; border-top: 3px solid var(--line); }
 .tiers div.on { border-top-color: var(--sel); color: var(--txt); font-weight: 600; }

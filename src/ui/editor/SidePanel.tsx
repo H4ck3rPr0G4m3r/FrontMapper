@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { signal } from '@preact/signals';
 import { nations } from '../../state/store';
-import { openChecks } from './ChecksTab';
+import { openChecks } from '../../state/checks';
 
 export type SideTab = 'checks' | 'nations' | 'info';
 export const sideTab = signal<SideTab>('checks');

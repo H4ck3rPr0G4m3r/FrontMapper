@@ -5,6 +5,7 @@ import { download } from '../ui/download';
 import type { ExportRequest, ExportResponse } from '../workers/export.worker';
 import pkg from '../../package.json';
 import type { EditorController } from './controller';
+import { acceptedChecks } from './checks';
 import { busy, meta, nations, project, sources } from './store';
 
 export const TOOL_VERSION: string = pkg.version;
@@ -24,6 +25,7 @@ export function currentProjectState(controller: EditorController | null): Projec
     nations: nations.value,
     earth: p.earth,
     camera: cam ? { ...cam } : p.camera,
+    accepted: acceptedChecks.value,
   };
 }
 

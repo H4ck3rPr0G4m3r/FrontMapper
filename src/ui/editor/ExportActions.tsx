@@ -9,7 +9,7 @@ export function ExportActions({ controller, onEarth }: { controller: EditorContr
   const label = st.phase === 'waiting' ? 'Finishing edits…' : st.phase === 'exporting' ? 'Exporting…' : 'Export';
   const onExport = () => {
     if (errors.length) {
-      sideTab.value = 'checks';
+      sideTab.value = 'info';
       exportState.value = { phase: 'error', message: `Fix the map info first: ${errors[0]}` };
       return;
     }

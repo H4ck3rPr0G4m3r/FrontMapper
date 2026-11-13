@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import { AnalysisClient } from '../../state/analysis';
+import { acceptedChecks } from '../../state/checks';
 import { ChecksTab } from './ChecksTab';
 import { NationsTab } from './NationsTab';
 import { InfoTab } from './InfoTab';
@@ -94,6 +95,7 @@ export function Editor({ onReady }: Props) {
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('blur', onBlur);
     const stopView = effect(() => controller.renderer?.setView(view.value));
+    const stopMarks = effect(() => controller.renderer?.setHiddenMarks(acceptedChecks.value));
     const client = new AnalysisClient(controller.grid, () => controller.renderer);
     controller.analysis = client;
     const stopAnalysis = effect(() => client.schedule(revision.value));
@@ -105,6 +107,7 @@ export function Editor({ onReady }: Props) {
       revision.value;
       meta.value;
       nations.value;
+      acceptedChecks.value;
       if (first) first = false;
       else autosaver.schedule();
     });
@@ -124,6 +127,7 @@ export function Editor({ onReady }: Props) {
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
       stopView();
+      stopMarks();
     };
   }, [controller]);
 
@@ -152,6 +156,7 @@ export function Editor({ onReady }: Props) {
   const ready = (r: Renderer, o: Overlay) => {
     controller.attach(r, o);
     r.setView(view.value);
+    r.setHiddenMarks(acceptedChecks.value);
     if (import.meta.env.DEV) installDevHook(controller, r);
     onReady?.(controller);
   };
