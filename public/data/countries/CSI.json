@@ -1,3 +1,1 @@
-{"type":"FeatureCollection", "features": [
-{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[154.3913,-21.03],[154.3913,-21.0287],[154.3885,-21.0291],[154.3913,-21.03]]]},"properties":{"id":"CSI","name":"Coral Sea Is.","iso2":"au"}}
-]}
+{"type":"Topology","arcs":[[[9999,0],[-9999,7461],[9999,2538],[0,-9999]]],"transform":{"scale":[2.770277027700933e-7,1.3001300130018233e-7],"translate":[154.38852,-21.03004]},"objects":{"country":{"type":"GeometryCollection","geometries":[{"arcs":[[0]],"type":"Polygon","properties":{"id":"CSI","name":"Coral Sea Is.","iso2":"au","over":true}}]}}}

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { feature } from 'topojson-client';
 import { HALF, autoFrame, fitSize, kmPerPx, lonLatToMerc, mercToLonLat, partsOf, setSide, wrapLonNear, type Part } from '../../src/earth/projection';
 
 const part = (lonMin: number, lonMax: number, latMin: number, latMax: number, area = (lonMax - lonMin) * (latMax - latMin)): Part => ({ lonMin, lonMax, latMin, latMax, area });
@@ -74,7 +75,8 @@ describe('autoFrame', () => {
   });
 
   it('frames all of Indonesia as one cluster', () => {
-    const fc = JSON.parse(readFileSync('public/data/countries/IDN.json', 'utf8'));
+    const topo = JSON.parse(readFileSync('public/data/countries/IDN.json', 'utf8'));
+    const fc: any = feature(topo, topo.objects.country);
     const parts = fc.features.flatMap((f: any) => partsOf(f.geometry));
     expect(parts.length).toBeGreaterThan(50);
     const { frame, outliers } = autoFrame(parts);

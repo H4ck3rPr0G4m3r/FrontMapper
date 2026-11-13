@@ -10,6 +10,8 @@ export interface CountryProps {
   id: string;
   name: string;
   iso2: string;
+  /** Natural Earth outline of a territory inside a geoBoundaries country: drawn over it. */
+  over?: boolean;
 }
 export interface ProvinceProps {
   id: string;
@@ -52,15 +54,22 @@ export async function loadCountriesLow(): Promise<FeatureCollection<Geometry, Co
   return fc;
 }
 
-/** Full-detail outline of one country. */
-export function loadCountry(a3: string): Promise<FeatureCollection<Geometry, CountryProps>> {
-  return getJson(`countries/${a3}.json`);
+/** Per-country files are TopoJSON with a single object. */
+async function getTopo<P>(path: string): Promise<FeatureCollection<Geometry, P>> {
+  const topo = await getJson<any>(path);
+  const key = Object.keys(topo.objects)[0];
+  return feature(topo, topo.objects[key]) as unknown as FeatureCollection<Geometry, P>;
 }
 
-/** Provinces/states of one country (empty if Natural Earth has none; a failed download throws). */
+/** Full-detail outline of one country (geoBoundaries). */
+export function loadCountry(a3: string): Promise<FeatureCollection<Geometry, CountryProps>> {
+  return getTopo(`countries/${a3}.json`);
+}
+
+/** Provinces/states of one country (empty if there are none; a failed download throws). */
 export async function loadProvinces(a3: string): Promise<FeatureCollection<Geometry, ProvinceProps>> {
   try {
-    return await getJson(`provinces/${a3}.json`);
+    return await getTopo(`provinces/${a3}.json`);
   } catch (e) {
     if (e instanceof DataMissing) return { type: 'FeatureCollection', features: [] };
     throw e;

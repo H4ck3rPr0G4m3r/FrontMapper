@@ -1,3 +1,1 @@
-{"type":"FeatureCollection", "features": [
-{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[12.4531,41.9028],[12.454,41.9028],[12.454,41.9039],[12.453,41.9039],[12.4531,41.9028]]]},"properties":{"id":"VAT","name":"Vatican","iso2":"va"}}
-]}
+{"type":"Topology","arcs":[[[6094,9999],[3347,-1563],[-44,-3885],[602,-2369],[-1717,-2182],[-4132,15],[-3191,1022],[-959,1826],[1595,2198],[375,1610],[2023,2662],[2101,666]]],"transform":{"scale":[0.0000011471147114712452,6.460646064603484e-7],"translate":[12.44681,41.90037]},"objects":{"country":{"type":"GeometryCollection","geometries":[{"arcs":[[0]],"type":"Polygon","properties":{"id":"VAT","name":"Vatican","iso2":"va"}}]}}}

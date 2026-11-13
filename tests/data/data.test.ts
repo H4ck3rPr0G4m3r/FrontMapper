@@ -1,9 +1,29 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { feature } from 'topojson-client';
 
 const DATA = 'public/data';
 const read = (p: string) => JSON.parse(readFileSync(join(DATA, p), 'utf8'));
+/** Per-country and per-province files are TopoJSON with one object. */
+const readFc = (p: string): any => {
+  const topo = read(p);
+  return feature(topo, Object.values(topo.objects)[0] as any);
+};
+const inBox = (ring: number[][], [x0, y0, x1, y1]: number[]) => ring.every(([x, y]) => x >= x0 && x <= x1 && y >= y0 && y <= y1);
+
+/** Median distance between neighbouring vertices, in metres. */
+function medianSegment(fc: any) {
+  const d: number[] = [];
+  for (const f of fc.features) for (const ring of rings(f.geometry))
+    for (let i = 1; i < ring.length; i++) {
+      const [a, b] = [ring[i - 1], ring[i]];
+      const k = Math.cos(((a[1] + b[1]) / 2) * (Math.PI / 180));
+      d.push(Math.hypot((b[0] - a[0]) * k, b[1] - a[1]) * 111_320);
+    }
+  d.sort((a, b) => a - b);
+  return d[d.length >> 1];
+}
 
 function* rings(geom: any): Generator<number[][]> {
   if (!geom) return;
@@ -28,7 +48,7 @@ describe('generated data', () => {
   });
 
   it('splits Russia and Fiji at the antimeridian', () => {
-    for (const a3 of ['RUS', 'FJI']) expect(maxLonJump(read(`countries/${a3}.json`))).toBeLessThan(180);
+    for (const a3 of ['RUS', 'FJI', 'USA', 'NZL']) expect(maxLonJump(readFc(`countries/${a3}.json`))).toBeLessThan(180);
   });
 
   it('has Jakarta as a capital with its population', () => {
@@ -48,10 +68,27 @@ describe('generated data', () => {
   });
 
   it('has Indonesian provinces with names and ISO 3166-2 codes', () => {
-    const fc = read('provinces/IDN.json');
+    const fc = readFc('provinces/IDN.json');
     expect(fc.features.length).toBeGreaterThanOrEqual(30);
     for (const f of fc.features) expect(f.properties.name).toBeTruthy();
     expect(fc.features.some((f: any) => /^ID-/.test(f.properties.iso3166_2))).toBe(true);
+  });
+
+  it('draws borders from geoBoundaries at fine detail', () => {
+    expect(readFileSync(join(DATA, 'SOURCES.md'), 'utf8')).toContain('geoBoundaries');
+    const idn = readFc('countries/IDN.json');
+    expect(idn.features[0].properties).toMatchObject({ id: 'IDN', name: 'Indonesia', iso2: 'id' });
+    expect(medianSegment(idn)).toBeLessThan(400);
+    expect(medianSegment(readFc('provinces/IDN.json'))).toBeLessThan(400);
+  });
+
+  it('keeps island territories separate from the country that governs them', () => {
+    const pr = [-67.4, 17.8, -65.1, 18.7];
+    expect(readFc('countries/PRI.json').features[0].properties.name).toBe('Puerto Rico');
+    const usa = readFc('countries/USA.json');
+    for (const ring of rings(usa.features[0].geometry)) expect(inBox(ring, pr)).toBe(false);
+    // Territories on a mainland keep Natural Earth outlines and are drawn over their neighbour.
+    expect(readFc('countries/HKG.json').features[0].properties.over).toBe(true);
   });
 
   it('keeps every data file under 100 MB', () => {

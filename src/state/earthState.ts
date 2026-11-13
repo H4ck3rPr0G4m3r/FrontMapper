@@ -1,7 +1,7 @@
 import { computed, signal } from '@preact/signals';
 import type { FeatureCollection, Geometry } from 'geojson';
 import { autoFrame, fitSize, frameAround, lonLatToMerc, partsOf, setSide, type Part } from '../earth/projection';
-import { loadCountriesLow, loadProvinces, type CountryProps, type ProvinceProps } from '../earth/regions';
+import { loadCountriesLow, loadCountry, loadProvinces, type CountryProps, type ProvinceProps } from '../earth/regions';
 import { hasSelection } from '../earth/selectionOps';
 import { sizeProblem } from '../core/size';
 import { DEFAULT_CURVE, type ElevationCurve, type FrameSize, type LonLat, type SelOp, type SelShape } from '../earth/types';
@@ -29,6 +29,18 @@ export const provincesByCountry = signal<Map<string, FeatureCollection<Geometry,
 export async function ensureCountries() {
   if (!countriesLow.value) countriesLow.value = await loadCountriesLow();
   return countriesLow.value;
+}
+
+const countryDetail = new Map<string, Promise<FeatureCollection<Geometry, CountryProps>>>();
+/** Detailed (geoBoundaries) outline of one country, for display once it matters. */
+export function ensureCountryDetail(a3: string) {
+  let p = countryDetail.get(a3);
+  if (!p) {
+    p = loadCountry(a3);
+    p.catch(() => countryDetail.delete(a3));
+    countryDetail.set(a3, p);
+  }
+  return p;
 }
 
 export async function ensureProvinces(a3: string) {

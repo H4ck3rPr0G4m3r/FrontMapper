@@ -1,3 +1,1 @@
-{"type":"FeatureCollection", "features": [
-{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[123.597,-12.4283],[123.575,-12.4266],[123.5756,-12.4368],[123.5977,-12.4386],[123.597,-12.4283]]]},"properties":{"id":"ATC","name":"Ashmore and Cartier Is.","iso2":"au"}}
-]}
+{"type":"Topology","arcs":[[[9678,8569],[321,-8569],[-9748,1497],[-251,8502],[9678,-1430]]],"transform":{"scale":[0.0000022712271227126273,0.0000011961196119612153],"translate":[123.57504,-12.43857]},"objects":{"country":{"type":"GeometryCollection","geometries":[{"arcs":[[0]],"type":"Polygon","properties":{"id":"ATC","name":"Ashmore and Cartier Is.","iso2":"au","over":true}}]}}}

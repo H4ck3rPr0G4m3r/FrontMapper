@@ -34,6 +34,14 @@ test('search selects Indonesia and sizes the frame', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Convert to map' })).toBeEnabled();
 });
 
+test('selected countries show their detailed borders', async ({ page }) => {
+  await open(page);
+  expect(await page.evaluate(() => (window as any).__earth.detailed())).not.toContain('IDN');
+  await page.getByPlaceholder('Search a country or province').fill('Indonesia');
+  await page.keyboard.press('Enter');
+  await expect.poll(() => page.evaluate(() => (window as any).__earth.detailed())).toContain('IDN');
+});
+
 test('shift-click adds a second country', async ({ page }) => {
   await open(page);
   await page.getByPlaceholder('Search a country or province').fill('Indonesia');

@@ -125,6 +125,7 @@ export function regionRaster(features: { id: string; geometry: Geometry | null }
 export interface RegionShape {
   id: string;
   geometry: Geometry | null;
+  over?: boolean;
 }
 
 /** Every country touching the frame, at full detail (falling back to its outline). */
@@ -142,11 +143,13 @@ export async function countriesNear(fs: FrameSize, regions: RegionLoaders, onPro
         throw e;
       });
       onProgress?.(++done, near.length);
-      const geoms = full?.features.length ? full.features.map((g) => g.geometry) : [f.geometry];
-      return geoms.map((geometry) => ({ id, geometry }));
+      if (!full?.features.length) return [{ id, geometry: f.geometry }];
+      return full.features.map((g) => ({ id, geometry: g.geometry, over: !!g.properties.over }));
     }),
   );
-  return out.flat();
+  // Territories drawn from Natural Earth sit inside a geoBoundaries country: paint them last.
+  const flat: RegionShape[] = out.flat();
+  return [...flat.filter((s) => !s.over), ...flat.filter((s) => s.over)];
 }
 
 /** A drawn shape as Mercator rings. */
@@ -250,5 +253,5 @@ export async function convert(req: ConvertRequest, deps: ConvertDeps, onProgress
   }
   voidEnclosedLakes(grid);
   onProgress('Building map', 4, steps);
-  return { grid, sources: ['osm', 'terrain-tiles', 'natural-earth'], regionGrid: country.grid, regionIndex: country.index };
+  return { grid, sources: ['osm', 'terrain-tiles', 'geoboundaries', 'natural-earth'], regionGrid: country.grid, regionIndex: country.index };
 }

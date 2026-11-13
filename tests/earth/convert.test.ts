@@ -138,13 +138,29 @@ describe('convert', () => {
     expect(grid.terrain[at(grid, 35, 120)]).toBe(WATER);
     expect(regionIndex[regionGrid[at(grid, 31, 120)]]).toBe('AAA');
     expect(regionIndex[regionGrid[at(grid, 160, 100)]]).toBe('BBB');
-    expect(sources).toEqual(['osm', 'terrain-tiles', 'natural-earth']);
+    expect(sources).toEqual(['osm', 'terrain-tiles', 'geoboundaries', 'natural-earth']);
   });
 
   it('small lakes surrounded by void become void (the generator would fill them with void anyway)', async () => {
     const { grid } = await run(selectA);
     expect(grid.terrain[at(grid, 81, 141)]).toBe(WATER); // inside the selection
     expect(grid.terrain[at(grid, 151, 141)]).toBe(VOID); // inside the unselected neighbour
+  });
+
+  it('a territory drawn over its neighbour wins, whatever order the countries load in', async () => {
+    const T = { ...country('TTT', rectPx(50, 80, 70, 100)), properties: { id: 'TTT', name: 'TTT', iso2: '', over: true } };
+    const withT: RegionLoaders = {
+      countriesLow: async () => fc([T, A, B]),
+      country: async (a3) => fc([a3 === 'TTT' ? T : a3 === 'AAA' ? A : B]),
+      provinces: async () => fc([]),
+    };
+    const { grid } = await convert(
+      { fs, ops: [{ mode: 'add', shape: { kind: 'region', level: 'country', id: 'TTT' } }], curve: DEFAULT_CURVE },
+      { fetch: stubFetch(() => 100), signal: new AbortController().signal, regions: withT, retryDelayMs: 0 },
+      () => {},
+    );
+    expect(grid.terrain[at(grid, 60, 90)]).toBe(LAND);
+    expect(grid.terrain[at(grid, 100, 100)]).toBe(VOID);
   });
 
   it('subtracting a rectangle turns the selected land inside it into void', async () => {
