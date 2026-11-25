@@ -8,7 +8,7 @@ import { ISSUE_TEXT, type NationIssueKind } from '../../core/nations';
 import { currentNationIssues } from '../../state/nationChecks';
 import { CrowdedFix } from './CrowdedFix';
 import { infoErrors } from '../../state/mapOps';
-import { nations, project } from '../../state/store';
+import { nations, project, riverPreview } from '../../state/store';
 
 const showIndex = signal({ islands: 0, lakes: 0 });
 
@@ -67,13 +67,15 @@ export function ChecksTab({ controller, children }: Props) {
           <button class="btn sm" onClick={() => show('lakes', lakes)}>Show</button>
           <button
             class="btn sm"
-            onClick={() => controller.growRivers()}
-            title="Joins river pieces up to 3 px apart (or that close to the sea) and widens rivers until they stay. Round ponds are left alone."
+            aria-pressed={!!riverPreview.value}
+            onClick={() => (riverPreview.value ? controller.clearRiverPreview() : controller.previewRivers())}
+            title="Shows how rivers would be joined to the sea or lakes so they stay. Round ponds are left alone."
           >
-            Grow rivers
+            Grow rivers…
           </button>
           <button class="btn sm" onClick={() => setAccepted('lakes', true)}>Accept</button>
         </Issue>
+        <RiverPlan controller={controller} />
       </section>
 
       <section class="grp">
@@ -117,6 +119,47 @@ export function ChecksTab({ controller, children }: Props) {
 
       {children}
     </>
+  );
+}
+
+/** What Grow rivers would do, shown (in cyan on the map) before it is applied. */
+function RiverPlan({ controller }: { controller: EditorController }) {
+  const r = riverPreview.value;
+  if (!r) return null;
+  const steps = [
+    r.joints && `close ${r.joints} ${plural(r.joints, 'corner joint', 'corner joints')}`,
+    r.bridges && `bridge ${r.bridges} ${plural(r.bridges, 'gap', 'gaps')} to the sea, a lake or another river piece`,
+    r.widened && `widen ${r.widened} ${plural(r.widened, 'river', 'rivers')} that ${plural(r.widened, 'reaches', 'reach')} nothing, from the downstream end`,
+  ].filter(Boolean) as string[];
+  const left = [
+    r.tooShort && `${r.tooShort} ${plural(r.tooShort, 'river piece is', 'river pieces are')} too short to stay without becoming a lake`,
+    r.ponds && `${r.ponds} round ${plural(r.ponds, 'pond', 'ponds')}`,
+  ].filter(Boolean) as string[];
+  return (
+    <div class="river-plan" role="region" aria-label="Grow rivers preview">
+      {r.carved.length ? (
+        <>
+          <p>
+            <span class="swatch" />
+            <span>
+              Turns <b>{formatCount(r.carved.length)} px</b> into water (cyan on the map):
+            </span>
+          </p>
+          <ul>
+            {steps.map((s) => <li key={s}>{s}</li>)}
+          </ul>
+        </>
+      ) : (
+        <p>No river can be kept by joining or widening it.</p>
+      )}
+      {left.length > 0 && <p class="note">Left as they are: {left.join(', ')}. Draw a river with the River tool to connect them.</p>}
+      <div class="row">
+        {r.carved.length > 0 && <button class="btn sm" onClick={() => controller.focusCells(r.carved)}>Show</button>}
+        <span class="grow" />
+        <button class="btn sm" onClick={() => controller.clearRiverPreview()}>{r.carved.length ? 'Cancel' : 'Close'}</button>
+        {r.carved.length > 0 && <button class="btn sm primary" onClick={() => controller.growRivers()}>Apply</button>}
+      </div>
+    </div>
   );
 }
 

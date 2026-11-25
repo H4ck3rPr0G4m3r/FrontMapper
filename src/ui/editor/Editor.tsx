@@ -14,7 +14,7 @@ import { loadFlags } from '../../state/flags';
 import type { Overlay } from '../../render/overlay';
 import type { Renderer } from '../../render/renderer';
 import { EditorController } from '../../state/controller';
-import { brushDiameter, busy, canRedo, canUndo, meta, nations, project, revision, selection, spacePan, tool, view } from '../../state/store';
+import { brushDiameter, busy, canRedo, canUndo, meta, nations, project, revision, riverPreview, selection, spacePan, tool, view } from '../../state/store';
 import { ZoomControl } from './ZoomControl';
 import { BottomBar } from './BottomBar';
 import { EditorCanvas } from './EditorCanvas';
@@ -61,6 +61,13 @@ export function Editor({ onReady }: Props) {
         controller.redo();
         return;
       }
+      if ((e.ctrlKey || e.metaKey) && (k === 'c' || k === 'x' || k === 'v')) {
+        e.preventDefault();
+        if (k === 'c') controller.copy();
+        else if (k === 'x') controller.cut();
+        else controller.paste();
+        return;
+      }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (k === ' ') {
         if (!spacePan.value) spacePan.value = true;
@@ -68,7 +75,12 @@ export function Editor({ onReady }: Props) {
         e.preventDefault();
         return;
       }
-      if (k === 'escape') selection.value = null;
+      if (k === 'escape') {
+        if (controller.hasFloat) controller.cancelFloat();
+        else if (riverPreview.value) controller.clearRiverPreview();
+        else selection.value = null;
+      } else if (k === 'enter' && controller.hasFloat) controller.placeFloat();
+      else if ((k === 'delete' || k === 'backspace') && selection.value) controller.clearSelection();
       else if (k === '0') controller.renderer?.fit();
       else if (k === '+' || k === '=') controller.renderer?.zoomBy(1.5);
       else if (k === '-') controller.renderer?.zoomBy(1 / 1.5);
@@ -95,6 +107,10 @@ export function Editor({ onReady }: Props) {
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('blur', onBlur);
     const stopView = effect(() => controller.renderer?.setView(view.value));
+    // Switching tools puts down anything still floating.
+    const stopTool = effect(() => {
+      if (tool.value !== 'select' && tool.value !== 'wand' && tool.value !== 'pan') controller.placeFloat();
+    });
     const stopMarks = effect(() => controller.renderer?.setHiddenMarks(acceptedChecks.value));
     const client = new AnalysisClient(controller.grid, () => controller.renderer);
     controller.analysis = client;
@@ -114,6 +130,7 @@ export function Editor({ onReady }: Props) {
     const flushSave = () => void autosaver.flush();
     window.addEventListener('pagehide', flushSave);
     return () => {
+      controller.placeFloat();
       stopSave();
       window.removeEventListener('pagehide', flushSave);
       void autosaver.flush();
@@ -127,6 +144,7 @@ export function Editor({ onReady }: Props) {
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
       stopView();
+      stopTool();
       stopMarks();
     };
   }, [controller]);
@@ -143,10 +161,12 @@ export function Editor({ onReady }: Props) {
 
   // Save before leaving: once the project is cleared there is nothing left to snapshot.
   const goHome = () => {
+    controller.placeFloat();
     void saver.current?.flush();
     backToStart();
   };
   const goEarth = () => {
+    controller.placeFloat();
     const s = currentProjectState(controller);
     if (!s) return;
     void saver.current?.flush();
@@ -181,7 +201,7 @@ export function Editor({ onReady }: Props) {
           >
             <ZoomControl controller={controller} />
           </EditorCanvas>
-          <BottomBar onTextureSelection={() => controller.textureSelection()} />
+          <BottomBar controller={controller} />
         </div>
         <SidePanel
           panes={{
@@ -221,6 +241,7 @@ function installDevHook(c: EditorController, r: Renderer) {
     mapToScreen: (x: number, y: number) => r.mapToScreen(x, y),
     setBrushDiameter: (d: number) => (brushDiameter.value = d),
     view: () => view.value,
+    selection: () => selection.value,
     idle: async () => {
       await r.scheduler?.whenIdle();
       await new Promise((res) => requestAnimationFrame(() => res(null)));

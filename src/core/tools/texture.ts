@@ -1,7 +1,7 @@
 import { LAND, MAX_MAG, VOID, WATER, type MapGrid, type Rect } from '../grid';
 import type { History } from '../history';
 import { fbm } from '../noise';
-import type { Selection } from '../selection';
+import { inSelection, type Selection } from '../selection';
 import { forFootprint } from './brush';
 import { Edit } from './common';
 
@@ -121,14 +121,14 @@ export function textureAt(g: MapGrid, h: History | null, sel: Selection, x: numb
   return applyCells(g, h, bounds, (visit) => forFootprint(g, sel, x, y, diameter, (cx, cy) => visit(cx, cy)), o);
 }
 
-/** Texture every cell of `r`. "Texture over selection" runs this per segment-sized piece. */
-export function textureRect(g: MapGrid, h: History | null, r: Rect, o: TextureOpts): Rect {
+/** Texture every cell of `r` (that is in `sel`). "Texture over selection" runs this per segment-sized piece. */
+export function textureRect(g: MapGrid, h: History | null, r: Rect, o: TextureOpts, sel: Selection = null): Rect {
   const x0 = Math.max(0, r.x);
   const y0 = Math.max(0, r.y);
   const x1 = Math.min(g.width, r.x + r.w);
   const y1 = Math.min(g.height, r.y + r.h);
   const bounds = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   return applyCells(g, h, bounds, (visit) => {
-    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) visit(x, y);
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (inSelection(sel, x, y)) visit(x, y);
   }, o);
 }

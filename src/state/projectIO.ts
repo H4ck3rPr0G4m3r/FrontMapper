@@ -30,6 +30,7 @@ export function currentProjectState(controller: EditorController | null): Projec
 }
 
 export function saveProjectFile(controller: EditorController | null) {
+  controller?.placeFloat();
   const s = currentProjectState(controller);
   if (!s) return;
   download(saveProject(s), `${deriveIds(s.meta.name).folder || 'map'}.frontmap`);
@@ -39,6 +40,7 @@ export function saveProjectFile(controller: EditorController | null) {
 export async function exportMap(controller: EditorController | null) {
   const p = project.value;
   if (!p || exportState.value.phase === 'exporting') return;
+  controller?.placeFloat();
   exportState.value = { phase: 'waiting' };
   await controller?.renderer?.scheduler?.whenIdle();
   while (busy.value) await new Promise((r) => setTimeout(r, 50));

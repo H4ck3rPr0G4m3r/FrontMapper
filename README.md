@@ -42,8 +42,11 @@ Some machines intercept TLS. The npm scripts that reach the network run Node wit
    with void anyway, so they would only clutter the Checks tab.
 
 Rivers narrower than a pixel come out as broken pieces, which the generator fills in as small lakes.
-**Grow rivers** on the Checks tab joins pieces up to 3 px apart (or that close to the sea) and widens
-waterways until they survive export; round ponds are left alone.
+**Grow rivers** on the Checks tab first shows what it would change, then keeps rivers with as few new
+water pixels as possible: it closes corner-only joints, bridges gaps of up to 3 px (or up to 10 px
+straight on from a river's end to the sea or a lake), and only widens a river that reaches nothing,
+evenly from its downstream end and never past 3 px on average. Round ponds are never touched. The
+**River** tool draws new edge-connected rivers and says whether they stay on export.
 
 A tile that fails to download after 3 retries stops the conversion with a Retry. It never becomes land, water or 0 m.
 

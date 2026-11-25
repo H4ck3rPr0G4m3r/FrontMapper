@@ -11,6 +11,8 @@ export interface PointerInfo {
   buttons: number;
   shift: boolean;
   alt: boolean;
+  /** Ctrl, or Cmd on a Mac. */
+  ctrl: boolean;
 }
 
 export interface CanvasHandlers {
@@ -72,7 +74,7 @@ export function EditorCanvas(props: Props) {
     const info = (e: PointerEvent | MouseEvent): PointerInfo => {
       const b = el.getBoundingClientRect();
       const m = rRef.current!.screenToMap(e.clientX - b.left, e.clientY - b.top);
-      return { x: m.x, y: m.y, buttons: e.buttons, shift: e.shiftKey, alt: e.altKey };
+      return { x: m.x, y: m.y, buttons: e.buttons, shift: e.shiftKey, alt: e.altKey, ctrl: e.ctrlKey || e.metaKey };
     };
     const down = (e: PointerEvent) => {
       el.setPointerCapture(e.pointerId);

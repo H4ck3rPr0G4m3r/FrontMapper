@@ -11,10 +11,12 @@ const GROUPS: Item[][] = [
   [
     { id: 'pan', icon: 'ph-hand', label: 'Pan', key: 'H' },
     { id: 'select', icon: 'ph-selection', label: 'Select', key: 'M' },
+    { id: 'wand', icon: 'ph-magic-wand', label: 'Magic wand', key: 'W' },
   ],
   [
     { id: 'brush', icon: 'ph-paint-brush', label: 'Brush', key: 'B' },
     { id: 'fill', icon: 'ph-paint-bucket', label: 'Fill', key: 'G' },
+    { id: 'river', icon: 'ph-path', label: 'River', key: 'L' },
     { id: 'raise', icon: 'ph-mountains', label: 'Raise / lower', key: 'R' },
     { id: 'smooth', icon: 'ph-wave-sine', label: 'Smooth', key: 'S' },
     { id: 'texture', icon: 'ph-dots-nine', label: 'Texture', key: 'T' },

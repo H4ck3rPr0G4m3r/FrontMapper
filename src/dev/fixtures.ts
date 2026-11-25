@@ -1,4 +1,4 @@
-import { LAND, VOID, createGrid, type MapGrid, type Terrain } from '../core/grid';
+import { LAND, VOID, WATER, createGrid, type MapGrid, type Terrain } from '../core/grid';
 
 function rect(g: MapGrid, x0: number, y0: number, w: number, h: number, t: Terrain, mag = 0) {
   for (let y = y0; y < y0 + h; y++)
@@ -19,6 +19,19 @@ export function buildFixture(name: string): MapGrid | null {
     rect(g, 0, 480, 1024, 32, VOID);
     rect(g, 100, 300, 3, 3, LAND, 4);
     rect(g, 420, 380, 4, 2, LAND, 4);
+    return g;
+  }
+  if (name === 'rivers') {
+    // Land with the sea on the right and the kinds of broken water Earth conversion produces.
+    const g = createGrid(512, 256, LAND);
+    g.mag.fill(6);
+    rect(g, 440, 0, 72, 256, WATER);
+    for (let k = 0; k < 60; k++) rect(g, 380 + k, 20 + k, 1, 1, WATER); // diagonal river touching the sea
+    rect(g, 300, 150, 60, 1, WATER); // river ending 8 px short of the sea
+    rect(g, 368, 150, 64, 1, WATER);
+    rect(g, 40, 200, 100, 1, WATER); // lone river, far from anything
+    rect(g, 60, 60, 4, 4, WATER); // round pond
+    rect(g, 150, 60, 25, 1, WATER); // short river piece
     return g;
   }
   if (name === 'huge') {
