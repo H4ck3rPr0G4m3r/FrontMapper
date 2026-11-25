@@ -9,8 +9,10 @@ import { formatCount } from '../../core/size';
 import { meta, nations, project, selectedNation, tool } from '../../state/store';
 import {
   cityMode, cityPicks, cityThreshold, dropCityPicks, earthNationsBusy, earthNationsNote, nationsFromEarth, pickSettings, picking, placeCityPicks, previewCityPicks,
-  rerollCityPicks, type EarthNationSource,
+  rerollCityPicks, hasEarthTarget, type EarthNationSource,
 } from '../../state/earthNationOps';
+import { openAlign } from '../../state/alignState';
+import { online } from '../../state/offline';
 import { nationGuide } from '../../core/nationGuide';
 import { analysis } from '../../state/analysis';
 import type { JSX } from 'preact';
@@ -24,7 +26,7 @@ export function NationsTab({ controller }: { controller: EditorController }) {
   return (
     <>
       <HowManyNations />
-      {project.value?.earth && <FromEarth />}
+      {hasEarthTarget(project.value) ? <FromEarth /> : <LineUp />}
       <section class="grp">
         <h4>{list.length ? `${list.length} ${list.length === 1 ? 'nation' : 'nations'}` : 'Nations'}</h4>
         {!list.length && (
@@ -349,6 +351,26 @@ function CityNations({ btn }: { btn: Btn }) {
   );
 }
 
+/** For maps not made from Earth data: pin them to Earth to use the Earth nation tools. */
+function LineUp() {
+  const pins = project.value?.georef?.pins.length ?? 0;
+  return (
+    <section class="grp line-up">
+      <h4>From Earth</h4>
+      <p class="empty-note">
+        {pins
+          ? "This map's pins no longer fit. Open the alignment to check them."
+          : 'Made this map yourself? Line it up with Earth to place cities, countries and provinces on it.'}
+      </p>
+      <button class="btn grp-action" disabled={!online.value} onClick={openAlign}>
+        <i aria-hidden="true" class="ph ph-globe-hemisphere-west" />
+        Line up with Earth
+      </button>
+      {!online.value && <p class="note">Needs a connection for the satellite view.</p>}
+    </section>
+  );
+}
+
 function FromEarth() {
   const busy = earthNationsBusy.value;
   const note = earthNationsNote.value;
@@ -361,6 +383,13 @@ function FromEarth() {
   return (
     <section class="grp from-earth">
       <h4>From Earth</h4>
+      {!project.value?.earth && (
+        <div class="fe-aligned">
+          <i aria-hidden="true" class="ph ph-push-pin" />
+          <span>{`Lined up with ${project.value?.georef?.pins.length ?? 0} pins`}</span>
+          <button class="btn sm" disabled={!online.value} onClick={openAlign}>Edit</button>
+        </div>
+      )}
       <CityNations btn={btn} />
       <div class="fe-regions">
         {btn('country', 'ph-globe-hemisphere-east', 'Countries')}

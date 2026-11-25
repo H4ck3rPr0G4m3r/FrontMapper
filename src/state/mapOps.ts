@@ -3,6 +3,7 @@ import { buildInfoJson, cropGrid, resizeGrid, validateInfo } from '../core/info'
 import type { Rect } from '../core/grid';
 import type { FrameSize } from '../earth/types';
 import { remapNations } from '../core/nations';
+import { transformPins } from '../earth/georef';
 import { analysis, analysisPending } from './analysis';
 import { meta, nations, project, selection } from './store';
 
@@ -24,7 +25,7 @@ export function cropTo(r: Rect) {
   nations.value = remapNations(nations.value, transform, grid.width, grid.height);
   gridReplaced();
   const earth = p.earth && { ...p.earth, frameSize: croppedFrame(p.earth.frameSize, r, grid.width, grid.height) };
-  project.value = { ...p, grid, earth, camera: undefined };
+  project.value = { ...p, grid, earth, georef: transformPins(p.georef, transform), camera: undefined };
 }
 
 /** The Earth frame of a crop: same scale, shifted to the crop's corner. */
@@ -46,5 +47,5 @@ export function resizeTo(width: number, height: number) {
   nations.value = remapNations(nations.value, transform, grid.width, grid.height);
   gridReplaced();
   const earth = p.earth && { ...p.earth, frameSize: resizedFrame(p.earth.frameSize, grid.width, grid.height) };
-  project.value = { ...p, grid, earth, camera: undefined };
+  project.value = { ...p, grid, earth, georef: transformPins(p.georef, transform), camera: undefined };
 }

@@ -7,6 +7,7 @@ import pkg from '../../package.json';
 import type { EditorController } from './controller';
 import { acceptedChecks } from './checks';
 import { busy, meta, nations, project, sources } from './store';
+import { exportSources } from './earthNationOps';
 
 export const TOOL_VERSION: string = pkg.version;
 
@@ -24,6 +25,7 @@ export function currentProjectState(controller: EditorController | null): Projec
     meta: meta.value,
     nations: nations.value,
     earth: p.earth,
+    georef: p.georef,
     camera: cam ? { ...cam } : p.camera,
     accepted: acceptedChecks.value,
   };
@@ -51,7 +53,7 @@ export async function exportMap(controller: EditorController | null) {
     grid: { width: p.grid.width, height: p.grid.height, terrain: p.grid.terrain.slice(), mag: p.grid.mag.slice() },
     meta: meta.value,
     nations: nations.value,
-    sources: sources.value,
+    sources: exportSources(p, nations.value, sources.value),
     toolVersion: TOOL_VERSION,
   };
   try {

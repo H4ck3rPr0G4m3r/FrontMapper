@@ -1,0 +1,88 @@
+/* Line up with Earth: two panes (your map, the satellite view) and the pin panel. Sits over the editor. */
+.al { position: fixed; inset: 0; z-index: 900; display: grid; grid-template-rows: var(--bar) minmax(0, 1fr); background: var(--app); }
+.al-top { gap: 12px; }
+.al-title { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.al-title b { font-size: 13px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
+.al-title small { color: var(--dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.al-hint { margin-left: auto; color: var(--txt); }
+.al-hint kbd { margin-left: 10px; margin-right: 4px; }
+
+.al-body { display: grid; grid-template-columns: minmax(0, 1fr) 280px; min-height: 0; }
+.al-panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1px; min-height: 0; background: var(--line); }
+.al-pane { position: relative; min-width: 0; min-height: 0; }
+.al-leaflet { position: absolute; inset: 0; }
+.al-map { background: var(--stage); cursor: crosshair; }
+.al-earth { background: #0b1a26; cursor: crosshair; }
+.al-map.leaflet-grab, .al-earth.leaflet-grab { cursor: crosshair; }
+.al-map.leaflet-dragging, .al-earth.leaflet-dragging { cursor: grabbing; }
+.al-map-img { image-rendering: pixelated; box-shadow: 0 0 0 1px var(--line-hi), 0 10px 40px rgba(0, 0, 0, .45); }
+.al-overlay { image-rendering: pixelated; pointer-events: none; }
+.al-label {
+  position: absolute; left: 12px; bottom: 12px; z-index: 800; pointer-events: none;
+  padding: 3px 8px; border-radius: var(--r); background: rgba(21, 21, 21, .84); border: 1px solid var(--line-hi);
+  font-size: 11px; font-weight: 600; color: var(--txt); letter-spacing: .01em;
+}
+/* The side waiting for the second half of a pin. */
+.al-pane::after { content: ""; position: absolute; inset: 0; z-index: 790; pointer-events: none; box-shadow: inset 0 0 0 2px transparent; transition: box-shadow .16s var(--ease); }
+.al-pane[data-waiting]::after { box-shadow: inset 0 0 0 2px var(--sel); }
+.al-pane[data-waiting] .al-label { background: var(--sel); color: var(--selTxt); border-color: var(--sel); }
+
+/* Pins: a ring centred on the exact spot, its number beside it. */
+.al-pin { background: none; border: 0; }
+.al-pin .al-ring {
+  position: absolute; inset: 2px; border-radius: 50%;
+  border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .7), inset 0 0 0 1px rgba(0, 0, 0, .55);
+}
+.al-pin .al-ring::after { content: ""; position: absolute; left: 50%; top: 50%; width: 2px; height: 2px; margin: -1px 0 0 -1px; background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .6); }
+.al-pin b {
+  position: absolute; left: 17px; top: -9px; min-width: 16px; height: 16px; padding: 0 4px;
+  display: grid; place-items: center; border-radius: 3px;
+  background: #ededed; color: #1a1a1a; font: 600 10px/1 var(--mono); box-shadow: 0 1px 4px rgba(0, 0, 0, .55);
+}
+.al-pin.pin { cursor: grab; }
+.al-pin.selected .al-ring { inset: -1px; border-width: 3px; }
+.al-pin.selected b { background: #1a1a1a; color: #fff; box-shadow: 0 0 0 1.5px #fff, 0 1px 4px rgba(0, 0, 0, .55); }
+.al-pin.off .al-ring { border-color: var(--warn); }
+.al-pin.off b { background: var(--warn); color: #fff; }
+.al-pin.pending .al-ring { border-style: dashed; animation: al-wait 1.2s var(--ease) infinite alternate; }
+.al-pin.ghost .al-ring { border-style: dashed; border-color: rgba(255, 255, 255, .75); }
+.al-pin.ghost b { background: rgba(237, 237, 237, .7); }
+@keyframes al-wait { from { transform: scale(1); } to { transform: scale(1.35); } }
+@media (prefers-reduced-motion: reduce) { .al-pin.pending .al-ring { animation: none; } }
+
+/* Side panel */
+.al-pins { list-style: none; margin: 0 -6px; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.al-pins li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-radius: var(--r); }
+.al-pins li:hover { background: var(--btn); }
+.al-pins li.on { background: var(--btn-hi); }
+.al-pin-row {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px;
+  height: 28px; padding: 0 6px; border: 0; background: none; text-align: left; cursor: pointer; min-width: 0;
+}
+.al-num { height: 18px; display: grid; place-items: center; border-radius: 3px; background: var(--sel); color: var(--selTxt); font: 600 10px/1 var(--mono); }
+.al-num.off { background: var(--warn); color: #fff; }
+.al-where { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.al-pins li.on .al-where { color: var(--txt); }
+.al-res { font-size: 11px; color: var(--dim); }
+.al-res.off { color: var(--warn); }
+.al-pins .icon-btn { margin-right: 2px; opacity: 0; }
+.al-pins li:hover .icon-btn, .al-pins li.on .icon-btn, .al-pins .icon-btn:focus-visible { opacity: 1; }
+.al-fit { margin: 0; font-size: 12px; line-height: 1.5; }
+.al-fit b { font-weight: 600; }
+.al-problem { margin: 0; padding: 7px 10px; background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: var(--r); font-size: 11px; line-height: 1.5; color: var(--txt); }
+.al-check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; }
+.al-check input { margin: 0; accent-color: var(--sel); }
+.al-opacity { margin-top: 10px; }
+.al-opacity input:disabled { opacity: .4; cursor: default; }
+
+@media (hover: none) { .al-pins .icon-btn { opacity: 1; } }
+
+@media (max-width: 1100px) {
+  .al-hint { display: none; }
+}
+@media (max-width: 760px) {
+  .al-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .al-panes { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+  .al-title small, .al-top .bar-sep { display: none; }
+  .al .earth-side { border-left: 0; border-top: 1px solid var(--line); max-height: 40vh; }
+}

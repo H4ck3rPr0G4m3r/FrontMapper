@@ -61,6 +61,21 @@ evenly from its downstream end and never past 3 px on average. Round ponds are n
 
 A tile that fails to download after 3 retries stops the conversion with a Retry. It never becomes land, water or 0 m.
 
+## Lining up your own map
+
+A map made elsewhere (imported, generated or drawn in the editor) can use the Earth nation tools too.
+On the Nations tab, **Line up with Earth** opens your map next to the satellite view: click a spot on
+one side and the same spot on the other to pin it. Three pins give a straight fit (move, turn,
+stretch); from seven pins on, a curved fit is used when it fits clearly better, which maps drawn in
+another projection (QGIS's default lat/lon, a state plane) need. Each pin shows how far off it is,
+and your coastlines are drawn over the satellite view to check the fit.
+
+Nations are placed on a copy of the map warped into an Earth frame in the background, then mapped
+back onto your map by where they are on Earth. One that lands just off your coast moves to the
+nearest land within 3 px; one with no land nearby is skipped and counted. Your map itself never
+changes. The pins are saved with the project, and crop and resize move them along. Exports credit
+only the data the nations came from.
+
 ## Data and credits
 
 | Data | Source | Licence |

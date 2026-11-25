@@ -27,6 +27,8 @@ import { TOOL_KEYS, ToolRail } from './ToolRail';
 import { TopBar } from './TopBar';
 import { TopTools } from './TopTools';
 import { ShortcutSheet, shortcutsOpen } from './ShortcutSheet';
+import { AlignScreen } from '../align/AlignScreen';
+import { alignOpen, closeAlign } from '../../state/alignState';
 import './editor.css';
 
 interface Props {
@@ -49,6 +51,7 @@ export function Editor({ onReady }: Props) {
     if (exportState.value.phase === 'error') exportState.value = { phase: 'idle' };
     controller.onNationPicked = () => (sideTab.value = 'nations');
     const onKey = (e: KeyboardEvent) => {
+      if (alignOpen.value) return;
       const target = e.target as HTMLElement;
       const k = e.key.toLowerCase();
       if ((e.ctrlKey || e.metaKey) && k === 's') {
@@ -144,6 +147,7 @@ export function Editor({ onReady }: Props) {
       meta.value;
       nations.value;
       acceptedChecks.value;
+      project.value?.georef;
       if (first) first = false;
       else autosaver.schedule();
     });
@@ -169,6 +173,7 @@ export function Editor({ onReady }: Props) {
       stopTool();
       stopMarks();
       stopRef();
+      closeAlign();
     };
   }, [controller]);
 
@@ -236,6 +241,7 @@ export function Editor({ onReady }: Props) {
           }}
         />
       </div>
+      {alignOpen.value && <AlignScreen grid={p.grid} />}
     </div>
   );
 }
@@ -267,6 +273,7 @@ function installDevHook(c: EditorController, r: Renderer) {
     setBrushDiameter: (d: number) => (brushDiameter.value = d),
     view: () => view.value,
     selection: () => selection.value,
+    nations: () => nations.value,
     idle: async () => {
       await r.scheduler?.whenIdle();
       await new Promise((res) => requestAnimationFrame(() => res(null)));
