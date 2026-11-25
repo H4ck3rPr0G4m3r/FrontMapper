@@ -1,7 +1,8 @@
 import { LAND, WATER, type MapGrid } from '../core/grid';
 import type { Nation } from '../core/nations';
 import { countriesNear, regionRaster, type RegionLoaders, type RegionShape } from './convert';
-import { cityNations, regionNations, type RegionInfo } from './earthNations';
+import { cityCandidates, cityNations, regionNations, type RegionInfo } from './earthNations';
+import { pickFair, pickSpread, type PickOpts } from './cityPicks';
 import type { CityRow } from './regions';
 import type { CustomRegion, FrameSize } from './types';
 
@@ -16,6 +17,8 @@ export interface PlaceNationsRequest {
   minPop: number;
   /** OpenFront flag codes, or null when unknown (flags are then used unchecked). */
   flags: string[] | null;
+  /** Cities only: pick this many of them instead of all (spread out, or for even starts). */
+  pick?: PickOpts;
   /** The user's own regions, for `region`. */
   regions?: CustomRegion[];
 }
@@ -79,6 +82,7 @@ async function regionsFor(level: 'country' | 'province', fs: FrameSize, g: MapGr
 export async function placeEarthNations(req: PlaceNationsRequest, regions: RegionLoaders, cities: CityRow[]): Promise<Nation[]> {
   const g: MapGrid = { width: req.width, height: req.height, terrain: req.terrain, mag: new Uint8Array(0) };
   const flags = req.flags ? new Set(req.flags) : null;
+  if (req.source === 'city' && req.pick) return pickCities(req, req.pick, g, cities, flags).nations;
   if (req.source === 'city') return cityNations(cities, req.fs, g, req.minPop, flags);
   if (req.source === 'region') return customRegionNations(req, g, regions, cities, flags);
   const r = await regionsFor(req.source, req.fs, g, regions);
@@ -113,4 +117,15 @@ async function customRegionNations(req: PlaceNationsRequest, g: MapGrid, regions
     info.set(c.id, { name: c.name, iso2: iso2.get(first.level === 'country' ? first.id : first.country ?? '') ?? '' });
   });
   return regionNations('country', req.fs, g, grid, ids, cities, flags, info).map((n) => ({ ...n, source: 'region' as const }));
+}
+
+/** A number of the cities over the minimum: spread out, or chosen for even starts. */
+export function pickCities(req: PlaceNationsRequest, pick: PickOpts, g: MapGrid, cities: CityRow[], flags: Set<string> | null): { nations: Nation[]; evenness: number | null } {
+  const all = cityCandidates(cities, req.fs, g, req.minPop, flags);
+  const cands = all.map((c) => ({ x: c.nation.x, y: c.nation.y, pop: c.pop }));
+  if (pick.method === 'fair') {
+    const r = pickFair(g, cands, pick.count, pick.seed);
+    return { nations: r.picks.map((i) => all[i].nation), evenness: r.evenness };
+  }
+  return { nations: pickSpread(cands, pick.count, pick.spread, pick.seed, g.width, g.height).map((i) => all[i].nation), evenness: null };
 }

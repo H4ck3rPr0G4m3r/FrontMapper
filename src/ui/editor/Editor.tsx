@@ -3,6 +3,7 @@ import { effect } from '@preact/signals';
 import { AnalysisClient } from '../../state/analysis';
 import { SpawnRoomClient } from '../../state/spawnRoom';
 import { refImage } from '../../state/refImage';
+import { cityPicks } from '../../state/earthNationOps';
 import { acceptedChecks } from '../../state/checks';
 import { ChecksTab } from './ChecksTab';
 import { NationsTab } from './NationsTab';
@@ -123,6 +124,7 @@ export function Editor({ onReady }: Props) {
     const stopMarks = effect(() => controller.renderer?.setHiddenMarks(acceptedChecks.value));
     const stopRef = effect(() => {
       refImage.value;
+      cityPicks.value;
       controller.renderer?.requestDraw();
     });
     const client = new AnalysisClient(controller.grid, () => controller.renderer);
