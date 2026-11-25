@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import type { Plugin } from 'vite';
 
 /** Small files from public/ the app needs to start offline (the big border data loads on demand). */
-const PUBLIC_FILES = ['favicon.svg', 'apple-touch-icon.png', 'manifest.webmanifest', 'data/countries-low.json', 'data/flags.json', 'data/cities.json', 'data/provinces-index.json'];
+const PUBLIC_FILES = ['favicon.svg', 'apple-touch-icon.png', 'manifest.webmanifest', 'data/countries-low.json', 'data/flags.json', 'data/cities-index.json', 'data/provinces-index.json'];
 
 /**
  * Emits sw.js next to index.html with every built file in its precache list, versioned by

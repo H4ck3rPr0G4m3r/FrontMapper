@@ -3,8 +3,9 @@
 //
 // Sources:
 //   geoBoundaries CGAZ ADM0/ADM1 (CC BY 4.0 / ODbL): country and province shapes
-//   Natural Earth 10m admin-0 countries, admin-1 states/provinces, populated places (public domain):
-//     ids, names and flag codes, territories geoBoundaries folds into their sovereign, cities
+//   Natural Earth 10m admin-0 countries, admin-1 states/provinces (public domain):
+//     ids, names and flag codes, territories geoBoundaries folds into their sovereign
+//   GeoNames cities1000 (CC BY 4.0): every place with at least 1000 people, one file per country
 //   OpenFront flag list and info.schema.json from github.com/openfrontio/OpenFrontIO (main)
 import { mkdirSync, readFileSync, rmSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -27,8 +28,15 @@ const CGAZ_ALIAS = { XKX: 'KOS' };
 const DATASETS = {
   admin0: 'ne_10m_admin_0_countries',
   admin1: 'ne_10m_admin_1_states_provinces',
-  places: 'ne_10m_populated_places',
 };
+const GEONAMES = 'https://download.geonames.org/export/dump/cities1000.zip';
+/** GeoNames feature codes left out: city sections, historical, abandoned and destroyed places. */
+const SKIP_PLACES = new Set(['PPLX', 'PPLH', 'PPLQ', 'PPLW', 'PPLCH']);
+/**
+ * geoBoundaries CGAZ shapefiles store text as Windows-1252, not UTF-8. Names in scripts that code
+ * page cannot hold (Vietnamese...) are already '?' there; those take the Natural Earth name.
+ */
+const CGAZ_ENCODING = 'win1252';
 
 async function download(url, file) {
   if (existsSync(file)) return readFileSync(file);
@@ -54,6 +62,16 @@ async function naturalEarth(key) {
   return shp;
 }
 
+/** GeoNames cities1000: tab-separated rows, UTF-8. */
+async function geonames() {
+  const txt = join(CACHE, 'cities1000.txt');
+  if (!existsSync(txt)) {
+    const zip = await download(GEONAMES, join(CACHE, 'cities1000.zip'));
+    writeFileSync(txt, unzipSync(new Uint8Array(zip))['cities1000.txt']);
+  }
+  return readFileSync(txt, 'utf8');
+}
+
 const run = (cmd) => mapshaper.runCommands(cmd);
 const geojson = async (cmd) => JSON.parse((await mapshaper.applyCommands(`${cmd} -o format=geojson precision=0.00001 out.json`))['out.json']);
 
@@ -70,6 +88,10 @@ async function geoBoundaries(level) {
   }
   return shp;
 }
+
+/** A name without accents, for comparing spellings. */
+const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const accents = (s) => s.normalize('NFD').replace(/[^̀-ͯ]/g, '').length;
 
 const polygonsOf = (g) => (!g ? [] : g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : []);
 
@@ -109,8 +131,8 @@ async function borders(admin0, admin1) {
   const neIdAt = (x, y) => (neLoc.containing(x, y) ?? neLoc.nearest(x, y, 0.3))?.properties.ADM0_A3 ?? null;
 
   const simplify = `-simplify interval=${CGAZ_INTERVAL} keep-shapes`;
-  const parts = await geojson(`-i ${cgaz0} encoding=utf8 ${simplify} -explode`);
-  const partPts = await geojson(`-i ${cgaz0} encoding=utf8 ${simplify} -explode -points inner`);
+  const parts = await geojson(`-i ${cgaz0} encoding=${CGAZ_ENCODING} ${simplify} -explode`);
+  const partPts = await geojson(`-i ${cgaz0} encoding=${CGAZ_ENCODING} ${simplify} -explode -points inner`);
 
   // geoBoundaries group (ISO 3166-1 alpha-3) -> Natural Earth id
   const groups = new Set(parts.features.map((f) => f.properties.shapeGroup));
@@ -168,11 +190,19 @@ async function borders(admin0, admin1) {
   }
   console.log(`  ${shapes.size} countries (${over.size} drawn over a neighbour)`);
 
-  // Provinces: geoBoundaries ADM1, ISO 3166-2 codes from the Natural Earth province they sit in.
-  const neProv = await geojson(`-i ${admin1} encoding=utf8 -simplify interval=500 keep-shapes -filter-fields iso_3166_2`);
+  // Provinces: geoBoundaries ADM1, ISO 3166-2 codes (and lost names) from the Natural Earth province they sit in.
+  const neProv = await geojson(`-i ${admin1} encoding=utf8 -simplify interval=500 keep-shapes -filter-fields iso_3166_2,name,name_en,adm0_a3`);
+  // Best-accented spelling of every Natural Earth province name, per country.
+  const accented = new Map();
+  for (const f of neProv.features)
+    for (const n of [f.properties.name, f.properties.name_en].filter(Boolean).map(String)) {
+      const key = `${f.properties.adm0_a3}|${fold(n)}`;
+      if (accents(n) > accents(accented.get(key) ?? '')) accented.set(key, n);
+    }
   const provLoc = locator(neProv);
-  const provs = await geojson(`-i ${cgaz1} encoding=utf8 ${simplify}`);
-  const provPts = await geojson(`-i ${cgaz1} encoding=utf8 ${simplify} -points inner`);
+  const provs = await geojson(`-i ${cgaz1} encoding=${CGAZ_ENCODING} ${simplify}`);
+  const provPts = await geojson(`-i ${cgaz1} encoding=${CGAZ_ENCODING} ${simplify} -points inner`);
+  let renamed = 0;
   const byCountry = new Map();
   provs.features.forEach((f, i) => {
     const pt = provPts.features[i].geometry?.coordinates;
@@ -180,9 +210,30 @@ async function borders(admin0, admin1) {
     const { shapeGroup: g, shapeID, shapeName } = f.properties;
     if (g === 'ATA') return; // one polar ring around the world; Antarctica has no provinces to pick
     const a3 = ownerAt(g, pt[0], pt[1]);
-    const iso = String(provLoc.containing(pt[0], pt[1])?.properties.iso_3166_2 ?? '');
+    const neHit = provLoc.containing(pt[0], pt[1])?.properties;
+    const iso = String(neHit?.iso_3166_2 ?? '');
     assertNoJumps(`provinces/${shapeID}`, polygonsOf(f.geometry));
-    const feat = { type: 'Feature', properties: { id: shapeID, name: shapeName, iso3166_2: iso.includes('-99') ? '' : iso, a3 }, geometry: f.geometry };
+    let name = String(shapeName ?? '');
+    // Lost characters ('?'), or accents the code page could not hold (Gyor for Győr): the Natural
+    // Earth name of the same province, when it is the same name with its accents.
+    if (name.includes('?')) {
+      // '?' stands for one lost letter: find the country's Natural Earth name it matches.
+      const pattern = new RegExp(`^${fold(name).replace(/[.*+^${}()|[\]\\]/g, '\\$&').replace(/\?/g, '.')}$`);
+      const match = [...accented].find(([k]) => k.startsWith(`${a3}|`) && pattern.test(k.slice(a3.length + 1)));
+      const neNames = [neHit?.name_en, neHit?.name].filter(Boolean).map(String).sort((x, y) => accents(y) - accents(x));
+      const fallback = match?.[1] ?? neNames[0];
+      if (fallback) {
+        name = fallback;
+        renamed++;
+      }
+    } else {
+      const better = accented.get(`${a3}|${fold(name)}`);
+      if (better && accents(better) > accents(name)) {
+        name = better;
+        renamed++;
+      }
+    }
+    const feat = { type: 'Feature', properties: { id: shapeID, name, iso3166_2: iso.includes('-99') ? '' : iso, a3 }, geometry: f.geometry };
     if (!byCountry.has(a3)) byCountry.set(a3, []);
     byCountry.get(a3).push(feat);
   });
@@ -191,19 +242,18 @@ async function borders(admin0, admin1) {
     await writeTopo(join(OUT, 'provinces', `${a3}.json`), 'provinces', feats);
     for (const f of feats) if (f.properties.name) index.push([f.properties.id, f.properties.name, a3, f.properties.iso3166_2]);
   }
-  console.log(`  ${index.length} provinces in ${byCountry.size} countries`);
+  console.log(`  ${index.length} provinces in ${byCountry.size} countries (${renamed} names taken from Natural Earth)`);
   return index;
 }
 
 async function main() {
   mkdirSync(CACHE, { recursive: true });
-  for (const d of ['countries', 'provinces']) rmSync(join(OUT, d), { recursive: true, force: true });
-  mkdirSync(join(OUT, 'countries'), { recursive: true });
-  mkdirSync(join(OUT, 'provinces'), { recursive: true });
+  for (const d of ['countries', 'provinces', 'cities']) rmSync(join(OUT, d), { recursive: true, force: true });
+  rmSync(join(OUT, 'cities.json'), { force: true });
+  for (const d of ['countries', 'provinces', 'cities']) mkdirSync(join(OUT, d), { recursive: true });
 
   const admin0 = await naturalEarth('admin0');
   const admin1 = await naturalEarth('admin1');
-  const places = await naturalEarth('places');
 
   const countryFields =
     `-each "id=ADM0_A3, name=NAME, iso2=(ISO_A2_EH && ISO_A2_EH != '-99') ? ISO_A2_EH.toLowerCase() : ''" -filter-fields id,name,iso2`;
@@ -219,19 +269,43 @@ async function main() {
   console.log('provinces-index.json');
   writeFileSync(join(OUT, 'provinces-index.json'), JSON.stringify(index));
 
-  console.log('cities.json');
-  const tmp = join(CACHE, 'places.json');
-  await run(`-i ${places} encoding=utf8 -o ${tmp} format=json`);
-  const rows = JSON.parse(readFileSync(tmp, 'utf8'))
-    .map((p) => {
-      const cls = String(p.FEATURECLA ?? '');
-      const kind = p.ADM0CAP === 1 || cls.startsWith('Admin-0 capital') ? 'capital' : cls.startsWith('Admin-1') ? 'admin1' : 'city';
-      const iso = String(p.ISO_A2 ?? '');
-      return [p.NAME, +(+p.LONGITUDE).toFixed(4), +(+p.LATITUDE).toFixed(4), p.POP_MAX | 0, iso === '-99' ? '' : iso.toLowerCase(), kind, p.ADM0_A3];
-    })
-    .filter((r) => r[3] >= 10000 || r[5] !== 'city')
-    .sort((a, b) => b[3] - a[3]);
-  writeFileSync(join(OUT, 'cities.json'), JSON.stringify(rows));
+  // Cities: GeoNames cities1000, one file per country (ISO 3166-1 alpha-2), biggest first.
+  // Rows: [name, lon, lat, population, iso2, kind, countryA3]; kind is capital, admin1 (seat) or city.
+  console.log('cities/*.json');
+  const ne0 = await geojson(`-i ${admin0} encoding=utf8 -filter-fields ADM0_A3,ISO_A2_EH -points inner`);
+  const a3Of = new Map();
+  for (const f of ne0.features) {
+    const iso = String(f.properties.ISO_A2_EH ?? '').toLowerCase();
+    if (iso && iso !== '-99' && !a3Of.has(iso)) a3Of.set(iso, f.properties.ADM0_A3);
+  }
+  const byIso = new Map();
+  for (const line of (await geonames()).split('\n')) {
+    const c = line.split('\t');
+    if (c.length < 15) continue;
+    const pop = +c[14] | 0;
+    const code = c[7];
+    // Districts of a bigger city (Pest, Buda...), and historical or abandoned places, are no nations.
+    if (SKIP_PLACES.has(code)) continue;
+    const kind = code === 'PPLC' ? 'capital' : code === 'PPLA' ? 'admin1' : 'city';
+    if (pop <= 0 && kind === 'city') continue;
+    const iso = c[8].toLowerCase();
+    if (!iso) continue;
+    const row = [c[1], +(+c[5]).toFixed(4), +(+c[4]).toFixed(4), pop, iso, kind, a3Of.get(iso) ?? ''];
+    if (!byIso.has(iso)) byIso.set(iso, []);
+    byIso.get(iso).push(row);
+  }
+  // Index: where each country's cities are, so the app loads only the countries a map touches.
+  const cityIndex = {};
+  let cityCount = 0;
+  for (const [iso, rows] of [...byIso].sort(([a], [b]) => a.localeCompare(b))) {
+    rows.sort((a, b) => b[3] - a[3]);
+    writeFileSync(join(OUT, 'cities', `${iso}.json`), JSON.stringify(rows));
+    const lons = rows.map((r) => r[1]), lats = rows.map((r) => r[2]);
+    cityIndex[iso] = [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats), rows.length];
+    cityCount += rows.length;
+  }
+  writeFileSync(join(OUT, 'cities-index.json'), JSON.stringify(cityIndex));
+  const rows = { length: cityCount };
 
   console.log('flags.json');
   const commit = await (await fetch(`https://api.github.com/repos/${REPO}/commits/main`, { headers: UA })).json();
@@ -259,6 +333,7 @@ async function main() {
       `- geoBoundaries CGAZ ADM0 and ADM1 @ ${CGAZ_REF} (CC BY 4.0 / ODbL), ${CGAZ}, simplified to ${CGAZ_INTERVAL} m.`,
       '  Runfola, D. et al. (2020) geoBoundaries: A global database of political administrative boundaries. PLoS ONE 15(4): e0231866.',
       `- Natural Earth 10m: ${Object.values(DATASETS).join(', ')} (public domain), ${NE}`,
+      `- GeoNames cities1000 (CC BY 4.0), ${GEONAMES}, downloaded ${new Date().toISOString().slice(0, 10)}.`,
       `- OpenFront flag list and info.schema.json: ${REPO} @ ${commit.sha}`,
       '',
     ].join('\n'),

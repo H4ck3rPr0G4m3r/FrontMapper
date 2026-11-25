@@ -1,7 +1,7 @@
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import { feature } from 'topojson-client';
 
-/** Rows of cities.json: [name, lon, lat, population, iso2, kind, countryA3]. */
+/** Rows of cities/<iso2>.json: [name, lon, lat, population, iso2, kind, countryA3]. */
 export type CityRow = [string, number, number, number, string, 'capital' | 'admin1' | 'city', string];
 /** Rows of provinces-index.json: [id, name, countryA3, iso3166_2]. */
 export type ProvinceIndexRow = [string, string, string, string];
@@ -77,6 +77,20 @@ export async function loadProvinces(a3: string): Promise<FeatureCollection<Geome
 }
 
 export const loadProvinceIndex = () => getJson<ProvinceIndexRow[]>('provinces-index.json');
-export const loadCities = () => getJson<CityRow[]>('cities.json');
+/** Where each country's cities are: iso2 -> [minLon, minLat, maxLon, maxLat, count]. */
+export const loadCityIndex = () => getJson<Record<string, [number, number, number, number, number]>>('cities-index.json');
+
+/**
+ * Cities (GeoNames, 1000+ people) of every country with cities inside a lon/lat box, biggest
+ * first. `lon1` may pass 180 for boxes across the date line.
+ */
+export async function loadCitiesIn(lon0: number, lat0: number, lon1: number, lat1: number): Promise<CityRow[]> {
+  const index = await loadCityIndex();
+  const hit = Object.entries(index)
+    .filter(([, [x0, y0, x1, y1]]) => y1 >= lat0 && y0 <= lat1 && [-360, 0, 360].some((s) => x1 + s >= lon0 && x0 + s <= lon1))
+    .map(([iso]) => iso);
+  const sets = await Promise.all(hit.map((iso) => getJson<CityRow[]>(`cities/${iso}.json`)));
+  return sets.flat().sort((a, b) => b[3] - a[3]);
+}
 
 export type RegionFeature = Feature<Geometry, CountryProps | ProvinceProps>;
