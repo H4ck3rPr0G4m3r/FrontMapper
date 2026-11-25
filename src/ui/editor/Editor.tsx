@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import { AnalysisClient } from '../../state/analysis';
+import { SpawnRoomClient } from '../../state/spawnRoom';
+import { refImage } from '../../state/refImage';
 import { acceptedChecks } from '../../state/checks';
 import { ChecksTab } from './ChecksTab';
 import { NationsTab } from './NationsTab';
@@ -16,11 +18,14 @@ import type { Renderer } from '../../render/renderer';
 import { EditorController } from '../../state/controller';
 import { brushDiameter, busy, canRedo, canUndo, meta, nations, project, revision, riverPreview, selection, spacePan, tool, view } from '../../state/store';
 import { ZoomControl } from './ZoomControl';
+import { Minimap } from './Minimap';
 import { BottomBar } from './BottomBar';
 import { EditorCanvas } from './EditorCanvas';
 import { SidePanel, sideTab } from './SidePanel';
 import { TOOL_KEYS, ToolRail } from './ToolRail';
 import { TopBar } from './TopBar';
+import { TopTools } from './TopTools';
+import { ShortcutSheet, shortcutsOpen } from './ShortcutSheet';
 import './editor.css';
 
 interface Props {
@@ -50,7 +55,7 @@ export function Editor({ onReady }: Props) {
         if (!e.repeat) saveProjectFile(controller);
         return;
       }
-      if (target.closest('input, textarea, select, [contenteditable]')) return;
+      if (target.closest('input, textarea, select, [contenteditable]') || shortcutsOpen.value) return;
       if ((e.ctrlKey || e.metaKey) && k === 'z') {
         e.preventDefault();
         e.shiftKey ? controller.redo() : controller.undo();
@@ -69,6 +74,10 @@ export function Editor({ onReady }: Props) {
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === '?') {
+        shortcutsOpen.value = true;
+        return;
+      }
       if (k === ' ') {
         if (!spacePan.value) spacePan.value = true;
         controller.updateCursor();
@@ -112,9 +121,18 @@ export function Editor({ onReady }: Props) {
       if (tool.value !== 'select' && tool.value !== 'wand' && tool.value !== 'pan') controller.placeFloat();
     });
     const stopMarks = effect(() => controller.renderer?.setHiddenMarks(acceptedChecks.value));
+    const stopRef = effect(() => {
+      refImage.value;
+      controller.renderer?.requestDraw();
+    });
     const client = new AnalysisClient(controller.grid, () => controller.renderer);
     controller.analysis = client;
     const stopAnalysis = effect(() => client.schedule(revision.value));
+    const rooms = new SpawnRoomClient(controller.grid);
+    const stopRooms = effect(() => {
+      revision.value;
+      rooms.schedule(nations.value);
+    });
     const autosaver = new AutoSaver(() => currentProjectState(controller));
     saver.current = autosaver;
     void autosaver.flush(); // a new or reopened map shows up in Recent right away
@@ -140,12 +158,15 @@ export function Editor({ onReady }: Props) {
       spacePan.value = false;
       stopAnalysis();
       client.dispose();
+      stopRooms();
+      rooms.dispose();
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
       stopView();
       stopTool();
       stopMarks();
+      stopRef();
     };
   }, [controller]);
 
@@ -183,7 +204,7 @@ export function Editor({ onReady }: Props) {
 
   return (
     <div class="ed screen-in">
-      <TopBar onUndo={() => controller.undo()} onRedo={() => controller.redo()} actions={<ExportActions controller={controller} onEarth={p.earth ? goEarth : undefined} />} onHome={goHome} />
+      <TopBar tools={<TopTools controller={controller} />} onUndo={() => controller.undo()} onRedo={() => controller.redo()} actions={<ExportActions controller={controller} onEarth={p.earth ? goEarth : undefined} />} onHome={goHome} />
       <div class="ed-body">
         <ToolRail />
         <div class="ed-center">
@@ -200,9 +221,11 @@ export function Editor({ onReady }: Props) {
             onCancel={() => controller.cancelPointer()}
           >
             <ZoomControl controller={controller} />
+            <Minimap controller={controller} />
           </EditorCanvas>
           <BottomBar controller={controller} />
         </div>
+        <ShortcutSheet />
         <SidePanel
           panes={{
             checks: <ChecksTab controller={controller} />,

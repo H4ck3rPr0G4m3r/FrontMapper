@@ -4,6 +4,8 @@ import type { EditorController } from '../../state/controller';
 import { flagCodes, flagUrl } from '../../state/flags';
 import { issuesByNation } from '../../state/nationChecks';
 import { CrowdedFix } from './CrowdedFix';
+import { spawnRooms } from '../../state/spawnRoom';
+import { formatCount } from '../../core/size';
 import { nations, project, selectedNation, tool } from '../../state/store';
 import { cityThreshold, earthNationsBusy, earthNationsNote, nationsFromEarth, type EarthNationSource } from '../../state/earthNationOps';
 
@@ -38,7 +40,63 @@ export function NationsTab({ controller }: { controller: EditorController }) {
           </button>
         )}
       </section>
+      {!project.value?.earth && list.length >= 2 && <StartingRoom controller={controller} />}
     </>
+  );
+}
+
+const ROOM_ROWS = 8;
+
+/**
+ * How fair the starts are on a hand-made map: each nation's room to grow (land it reaches
+ * before anyone else), as ranked bars. Earth maps skip this: real countries are not fair.
+ */
+function StartingRoom({ controller }: { controller: EditorController }) {
+  const [all, setAll] = useState(false);
+  const rooms = spawnRooms.value;
+  const issues = issuesByNation.value;
+  if (!rooms) return <section class="grp"><h4>Starting room</h4><p class="empty-note" aria-busy="true">Measuring…</p></section>;
+  const rows = nations.value
+    .map((n) => ({ n, room: rooms.get(n.id)?.room ?? 0 }))
+    .sort((a, b) => b.room - a.room);
+  const max = rows[0]?.room || 1;
+  const total = rows.reduce((s, r) => s + r.room, 0) || 1;
+  const least = rows[rows.length - 1].room;
+  const shown = all ? rows : rows.slice(0, ROOM_ROWS);
+  return (
+    <section class="grp">
+      <h4>Starting room</h4>
+      <p class="room-sum">
+        {least > 0 ? (
+          <>The roomiest start has <b>{(max / least).toFixed(1)}×</b> the land of the tightest.</>
+        ) : (
+          <>Some nations have no land to grow into.</>
+        )}
+      </p>
+      <ul class="room-list">
+        {shown.map(({ n, room }) => {
+          const tight = issues.get(n.id)?.some((i) => i.kind === 'boxed-in' || i.kind === 'small-island' || i.kind === 'removed-on-export');
+          return (
+            <li key={n.id}>
+              <button class={`room-row${tight ? ' tight' : ''}`} onClick={() => { selectedNation.value = n.id; controller.focusNation(n.id); }} title={`${n.name}: ${formatCount(room)} px of land`}>
+                <span class="room-name">
+                  {tight && <i aria-hidden="true" class="ph-bold ph-warning" />}
+                  {n.name}
+                </span>
+                <span class="room-bar"><b style={{ width: `${(room / max) * 100}%` }} /></span>
+                <span class="room-val">{`${Math.round((room / total) * 100)}%`}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {rows.length > ROOM_ROWS && (
+        <button class="undo-accept room-more" onClick={() => setAll(!all)}>
+          {all ? 'Show fewer' : `Show all ${rows.length}`}
+        </button>
+      )}
+      <p class="note">Land each nation reaches before anyone else, walking over land.</p>
+    </section>
   );
 }
 

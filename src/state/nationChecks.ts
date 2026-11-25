@@ -1,6 +1,7 @@
 import { computed, signal } from '@preact/signals';
 import { crowdedExtras, nationIssues, type Nation, type NationIssue } from '../core/nations';
 import { analysis } from './analysis';
+import { spawnRooms } from './spawnRoom';
 import { flagCodes } from './flags';
 import { nations, project, selectedNation } from './store';
 
@@ -11,7 +12,7 @@ export const currentNationIssues = computed<NationIssue[]>(() => {
   const p = project.value;
   if (!p) return [];
   analysis.value; // grid edits surface through analysis revisions
-  return nationIssues(nations.value, p.grid, analysis.value?.sim ?? null, flagSet.value);
+  return nationIssues(nations.value, p.grid, analysis.value?.sim ?? null, flagSet.value, undefined, spawnRooms.value);
 });
 
 export const issuesByNation = computed(() => {

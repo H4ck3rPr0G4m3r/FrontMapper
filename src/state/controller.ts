@@ -16,11 +16,12 @@ import { elevationColor, tileColor } from '../core/colors';
 import type { Overlay } from '../render/overlay';
 import type { AnalysisClient } from './analysis';
 import { issuesByNation } from './nationChecks';
+import { refImage } from './refImage';
 import type { Renderer } from '../render/renderer';
 import type { PointerInfo } from '../ui/editor/EditorCanvas';
 import { newNationId, type Nation } from '../core/nations';
 import {
-  brushDiameter, busy, canPaste, canRedo, canUndo, floating, nations, paint, project, raiseAmount, revision, riverPreview, riverStatus, riverWidth,
+  brushDiameter, busy, camera, canPaste, canRedo, canUndo, floating, nations, paint, project, raiseAmount, revision, riverPreview, riverStatus, riverWidth,
   selectedNation, selection, spacePan, symmetry, textureOpts, tool, view, wandOpts, zoom,
 } from './store';
 
@@ -77,7 +78,11 @@ export class EditorController {
   attach(r: Renderer, o: Overlay) {
     this.renderer = r;
     this.overlay = o;
-    r.onCamera = (z) => (zoom.value = z);
+    r.onCamera = (z) => {
+      zoom.value = z;
+      camera.value = { ...r.camera };
+    };
+    o.add((ctx) => this.drawReference(ctx));
     o.add((ctx) => this.drawRiverPreview(ctx));
     o.add((ctx) => this.drawFloat(ctx));
     o.add((ctx) => this.drawSymmetry(ctx));
@@ -734,6 +739,28 @@ export class EditorController {
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
+    ctx.restore();
+  }
+
+  /** The reference image over the map, stretched to it or fitted inside it keeping its shape. */
+  private drawReference(ctx: CanvasRenderingContext2D) {
+    const r = this.renderer;
+    const ref = refImage.value;
+    if (!r || !ref?.visible) return;
+    const g = this.grid;
+    let x = 0, y = 0, w = g.width, h = g.height;
+    if (ref.fit === 'contain') {
+      const s = Math.min(g.width / ref.img.naturalWidth, g.height / ref.img.naturalHeight);
+      w = ref.img.naturalWidth * s;
+      h = ref.img.naturalHeight * s;
+      x = (g.width - w) / 2;
+      y = (g.height - h) / 2;
+    }
+    const a = r.mapToScreen(x, y), b = r.mapToScreen(x + w, y + h);
+    ctx.save();
+    ctx.globalAlpha = ref.opacity;
+    ctx.imageSmoothingEnabled = r.camera.zoom < 4;
+    ctx.drawImage(ref.img, a.x, a.y, b.x - a.x, b.y - a.y);
     ctx.restore();
   }
 

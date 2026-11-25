@@ -16,14 +16,14 @@ describe('accepted checks', () => {
     acceptedChecks.value = { islands: false, lakes: false };
     analysis.value = null;
     const base = openChecks.value;
-    analysis.value = { sim: sim([[1, 2], [9]]), revision: 1 };
+    analysis.value = { sim: sim([[1, 2], [9]]), revision: 1, counts: [] };
     expect(openChecks.value).toBe(base + 1);
 
     acceptedChecks.value = { ...acceptedChecks.value, lakes: true };
     expect(openChecks.value).toBe(base);
 
     // An edit (or a check that was still running when Accept was clicked) changes the lakes.
-    analysis.value = { sim: sim([[1, 2, 3], [9], [20]]), revision: 2 };
+    analysis.value = { sim: sim([[1, 2, 3], [9], [20]]), revision: 2, counts: [] };
     expect(openChecks.value).toBe(base);
   });
 });

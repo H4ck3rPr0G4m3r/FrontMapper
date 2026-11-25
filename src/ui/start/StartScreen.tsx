@@ -2,16 +2,10 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { importOpenFrontMap, openProject } from '../../core/project';
 import { forgetAutosave, listRecent, loadAutosave, type RecentEntry } from '../../state/autosave';
 import { countriesLow, ensureCountries } from '../../state/earthState';
-import { formatCount, sizeProblem, sizeTier } from '../../core/size';
-import { newBlankMap, openInEditor, screen } from '../../state/session';
+import { openInEditor, screen } from '../../state/session';
+import { NewMapCard } from './NewMapCard';
 import { readFile } from '../download';
 import './start.css';
-
-const PRESETS: [number, number][] = [
-  [2000, 1500],
-  [3000, 2000],
-  [4000, 2500],
-];
 
 function ago(t: number) {
   const s = (Date.now() - t) / 1000;
@@ -69,8 +63,6 @@ function WorldStrip() {
 }
 
 export function StartScreen() {
-  const [w, setW] = useState(3000);
-  const [h, setH] = useState(2000);
   const [recent, setRecent] = useState<RecentEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const projectInput = useRef<HTMLInputElement>(null);
@@ -112,16 +104,6 @@ export function StartScreen() {
     else setError(`"${r.name}" could not be restored from this browser's storage.`);
   };
 
-  const problem = sizeProblem(w, h);
-
-  const createBlank = () => {
-    try {
-      newBlankMap(w, h);
-    } catch {
-      setError('This browser could not allocate a map that large. Try a smaller size.');
-    }
-  };
-
   return (
     <main class="start screen-in">
       <header class="start-head">
@@ -152,44 +134,7 @@ export function StartScreen() {
             <i aria-hidden="true" class="ph-bold ph-arrow-right earth-card-go" />
           </button>
 
-          <div class="blank-card">
-            <div class="card-head">
-              <i aria-hidden="true" class="ph ph-paint-brush" />
-              <span>
-                <b>Blank map</b>
-                <small>All water. Paint land, then texture it.</small>
-              </span>
-            </div>
-            <div class="blank-form">
-              <span class="seg" role="group" aria-label="Size presets">
-                {PRESETS.map(([pw, ph]) => {
-                  const on = pw === w && ph === h;
-                  return (
-                    <button key={pw} class={on ? 'on' : ''} aria-pressed={on} onClick={() => { setW(pw); setH(ph); }}>
-                      {`${pw} × ${ph}`}
-                    </button>
-                  );
-                })}
-              </span>
-              <span class="blank-size">
-                <label>
-                  Width
-                  <input type="number" step={4} min={4} value={w} onInput={(e) => setW(+(e.currentTarget as HTMLInputElement).value)} />
-                </label>
-                <i aria-hidden="true" class="ph ph-x" />
-                <label>
-                  Height
-                  <input type="number" step={4} min={4} value={h} onInput={(e) => setH(+(e.currentTarget as HTMLInputElement).value)} />
-                </label>
-                <button class="btn primary" disabled={!!problem} onClick={createBlank}>
-                  Create blank map
-                </button>
-              </span>
-              <span class={`blank-note${problem ? ' bad' : ''}`} aria-live="polite">
-                {problem ?? `${formatCount(w * h)} px, ${sizeTier(w * h).toLowerCase()}${sizeTier(w * h) === 'Huge' ? '. Large maps run poorly on mobile.' : ''}`}
-              </span>
-            </div>
-          </div>
+          <NewMapCard onError={setError} />
 
           <h2>Open</h2>
           <div class="open-row">
