@@ -217,6 +217,7 @@ export function StartScreen() {
           )}
         </section>
       </div>
+      <footer class="start-foot">FrontMapper was made with the help of AI.</footer>
     </main>
   );
 }

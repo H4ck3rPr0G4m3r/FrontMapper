@@ -1,4 +1,5 @@
-.start { max-width: 1120px; min-height: 100dvh; margin: 0 auto; padding: 56px 32px 64px; }
+.start { max-width: 1120px; min-height: 100dvh; margin: 0 auto; padding: 56px 32px 28px; display: flex; flex-direction: column; }
+.start-foot { margin-top: auto; padding-top: 48px; color: var(--faint); font-size: 11px; }
 
 .start-head { display: flex; align-items: center; gap: 10px; margin-bottom: 44px; }
 .start-head > i { font-size: 22px; }
