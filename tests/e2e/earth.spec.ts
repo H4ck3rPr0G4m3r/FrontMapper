@@ -193,3 +193,29 @@ test('your own regions become nations', async ({ page }) => {
   await expect(page.getByRole('status')).toHaveText('Placed 1 region.');
   await expect(page.getByLabel('Nation name')).toHaveValue('Nusantara');
 });
+
+test('a number of cities can be picked spread out or for fair starts, previewed, then placed', async ({ page }) => {
+  test.setTimeout(90_000);
+  await open(page);
+  await stubTiles(page, { fail: false });
+  await selectSmallIndonesia(page);
+  await page.getByRole('button', { name: 'Convert to map' }).click();
+  await expect(page.locator('.ed-title')).toContainText('Indonesia', { timeout: 30_000 });
+  await page.getByRole('tab', { name: /Nations/ }).click();
+  await expect(page.getByRole('heading', { name: /How many nations/ })).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole('button', { name: 'Pick a number' }).click();
+  await page.getByLabel('Number of cities').fill('3');
+  await page.getByLabel('Smallest city to pick').fill('1000000');
+  await page.getByRole('button', { name: 'Pick 3 cities' }).click();
+  await expect(page.locator('.fe-picked')).toHaveText(/3 cities picked/);
+  await expect(page.getByLabel('Nation name')).toHaveCount(0); // only a preview
+
+  await page.getByRole('button', { name: 'Fair start' }).click();
+  await expect(page.locator('.fe-picked')).toHaveCount(0); // changing a setting drops the preview
+  await page.getByRole('button', { name: 'Pick 3 cities' }).click();
+  await expect(page.locator('.fe-picked')).toContainText('the land of the tightest');
+  await page.getByRole('button', { name: 'Place 3' }).click();
+  await expect(page.getByRole('status')).toHaveText('Placed 3 cities.');
+  await expect(page.getByLabel('Nation name')).toHaveCount(3);
+});

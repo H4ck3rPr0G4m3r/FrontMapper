@@ -17,6 +17,7 @@ import type { Overlay } from '../render/overlay';
 import type { AnalysisClient } from './analysis';
 import { issuesByNation } from './nationChecks';
 import { refImage } from './refImage';
+import { cityPicks } from './earthNationOps';
 import type { Renderer } from '../render/renderer';
 import type { PointerInfo } from '../ui/editor/EditorCanvas';
 import { newNationId, type Nation } from '../core/nations';
@@ -88,6 +89,7 @@ export class EditorController {
     o.add((ctx) => this.drawSymmetry(ctx));
     o.add((ctx) => this.drawSelection(ctx));
     o.add((ctx) => this.drawNations(ctx));
+    o.add((ctx) => this.drawCityPicks(ctx));
     o.add((ctx) => this.drawCursor(ctx));
   }
 
@@ -642,6 +644,31 @@ export class EditorController {
       ctx.fillRect(Math.round(s.x + 7), Math.round(s.y - 8), Math.ceil(w + 10), 16);
       ctx.fillStyle = '#1f1f1f';
       ctx.fillText(n.name, Math.round(s.x + 12), Math.round(s.y));
+    }
+  }
+
+  /** Cities picked but not placed yet: hollow pins with their names. */
+  private drawCityPicks(ctx: CanvasRenderingContext2D) {
+    const r = this.renderer;
+    const picks = cityPicks.value;
+    if (!r || !picks) return;
+    ctx.font = '600 11px ui-sans-serif, "Segoe UI", system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    for (const n of picks.nations) {
+      const s = r.mapToScreen(n.x + 0.5, n.y + 0.5);
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 6, 0, Math.PI * 2);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(0,0,0,.55)';
+      ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#fff';
+      ctx.stroke();
+      const w = ctx.measureText(n.name).width;
+      ctx.fillStyle = 'rgba(20,20,20,.85)';
+      ctx.fillRect(Math.round(s.x + 9), Math.round(s.y - 8), Math.ceil(w + 10), 16);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(n.name, Math.round(s.x + 14), Math.round(s.y));
     }
   }
 

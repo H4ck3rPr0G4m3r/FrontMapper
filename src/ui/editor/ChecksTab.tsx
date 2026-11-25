@@ -8,6 +8,7 @@ import type { EditorController } from '../../state/controller';
 import { ISSUE_TEXT, type NationIssueKind } from '../../core/nations';
 import { currentNationIssues } from '../../state/nationChecks';
 import { CrowdedFix } from './CrowdedFix';
+import { useNationGuide } from './NationsTab';
 import { infoErrors } from '../../state/mapOps';
 import { nations, project, riverPreview } from '../../state/store';
 
@@ -203,6 +204,7 @@ function RiverPlan({ controller }: { controller: EditorController }) {
 
 function NationSummary() {
   const list = nations.value;
+  const guide = useNationGuide();
   const issues = currentNationIssues.value;
   const byKind = new Map<NationIssueKind, number>();
   for (const i of issues) byKind.set(i.kind, (byKind.get(i.kind) ?? 0) + 1);
@@ -210,6 +212,9 @@ function NationSummary() {
     <section class="grp">
       <h4>Nations</h4>
       {!list.length && <p class="empty-note">No nations placed. Players will spawn anywhere.</p>}
+      {guide && (
+        <p class="guide-line">{`Maps with this much land usually have ${guide.typical[0] === guide.typical[1] ? `about ${guide.typical[0]}` : `${guide.typical[0]} to ${guide.typical[1]}`} nations${list.length ? `; this one has ${list.length}` : ''}.`}</p>
+      )}
       {list.length > 0 && !issues.length && (
         <div class="issue ok">
           <i aria-hidden="true" class="ph ph-check" />

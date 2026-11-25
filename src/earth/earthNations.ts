@@ -22,14 +22,19 @@ export function lonLatOf(fs: FrameSize, x: number, y: number): [number, number] 
 
 const flagOr = (code: string, flags: Set<string> | null) => (!code ? '' : !flags || flags.has(code) ? code : '');
 
-/** Cities inside the frame, on land, with at least `minPop` people. */
+/** Cities inside the frame, on land, with at least `minPop` people (biggest first, as in the data). */
 export function cityNations(cities: CityRow[], fs: FrameSize, grid: MapGrid, minPop: number, flags: Set<string> | null): Nation[] {
-  const out: Nation[] = [];
+  return cityCandidates(cities, fs, grid, minPop, flags).map((c) => c.nation);
+}
+
+/** Like cityNations, with each city's population. */
+export function cityCandidates(cities: CityRow[], fs: FrameSize, grid: MapGrid, minPop: number, flags: Set<string> | null): { nation: Nation; pop: number }[] {
+  const out: { nation: Nation; pop: number }[] = [];
   for (const [name, lon, lat, pop, iso2] of cities) {
     if (pop < minPop) continue;
     const { x, y } = pixelOf(fs, lon, lat);
     if (x < 0 || y < 0 || x >= grid.width || y >= grid.height || grid.terrain[y * grid.width + x] !== LAND) continue;
-    out.push({ id: newNationId(), name, x, y, flag: flagOr(iso2, flags), source: 'city', lonLat: [lon, lat] });
+    out.push({ nation: { id: newNationId(), name, x, y, flag: flagOr(iso2, flags), source: 'city', lonLat: [lon, lat] }, pop });
   }
   return out;
 }

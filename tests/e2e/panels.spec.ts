@@ -101,3 +101,14 @@ test('nations on a hand-made map show their starting room', async ({ page }) => 
   await expect(page.locator('.room-row')).toHaveCount(3, { timeout: 10_000 });
   await expect(page.locator('.room-row.tight')).toHaveCount(1);
 });
+
+test('the nation guide shows the typical range and lobby sizes for the land', async ({ page }) => {
+  await openFixture(page, 'render');
+  await page.getByRole('tab', { name: /Nations/ }).click();
+  await expect(page.getByRole('heading', { name: /How many nations/ })).toBeVisible({ timeout: 10_000 });
+  // 160,800 land tiles: about 8 large-lobby players, 1 to 3 nations typical.
+  await expect(page.getByRole('img', { name: /Most maps with this much land have 1 to 3 nations/ })).toBeVisible();
+  await expect(page.locator('.guide-kv')).toContainText('8 players');
+  await page.getByRole('tab', { name: /Checks/ }).click();
+  await expect(page.getByText('Maps with this much land usually have 1 to 3 nations.')).toBeVisible();
+});
