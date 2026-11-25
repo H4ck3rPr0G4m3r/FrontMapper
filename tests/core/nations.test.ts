@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { LAND, VOID, createGrid } from '../../src/core/grid';
 import { simulateExport } from '../../src/core/generator';
 import { crowdedExtras, nationIssues, remapNations, type Nation } from '../../src/core/nations';
+import { medianRoom, spawnRoom } from '../../src/core/spawnRoom';
 
 const flags = new Set(['id', 'my', 'DE-BB']);
 const nation = (id: string, x: number, y: number, extra: Partial<Nation> = {}): Nation => ({
@@ -79,5 +80,18 @@ describe('crowdedExtras', () => {
 
   it('never drops custom nations, even when they crowd each other', () => {
     expect(crowdedExtras([at('a', 0, 'custom'), at('b', 1, 'custom')], 30)).toEqual([]);
+  });
+});
+
+describe('spawnRoom', () => {
+  it('splits land by who reaches it first over land, and measures the landmass', () => {
+    const g = createGrid(30, 10);
+    for (let y = 0; y < 10; y++) for (let x = 0; x < 20; x++) g.terrain[y * 30 + x] = LAND; // 200 px continent
+    for (let y = 0; y < 2; y++) for (let x = 25; x < 28; x++) g.terrain[y * 30 + x] = LAND; // 6 px island
+    const r = spawnRoom(g, [{ x: 0, y: 5 }, { x: 19, y: 5 }, { x: 26, y: 0 }, { x: 22, y: 5 }]);
+    expect(r.room[0] + r.room[1]).toBe(200);
+    expect(r.room[0]).toBe(100);
+    expect([...r.island]).toEqual([200, 200, 6, 0]);
+    expect(medianRoom(r.room)).toBe(100);
   });
 });

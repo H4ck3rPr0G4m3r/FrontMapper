@@ -15,9 +15,11 @@ interface Props {
   /** Extra actions on the right (Earth, Save, Export...). */
   actions?: ComponentChildren;
   onHome?: () => void;
+  /** Small tools before the view switch. */
+  tools?: ComponentChildren;
 }
 
-export function TopBar({ onUndo, onRedo, actions, onHome }: Props) {
+export function TopBar({ onUndo, onRedo, actions, onHome, tools }: Props) {
   const p = project.value;
   return (
     <header class="ed-top">
@@ -48,6 +50,8 @@ export function TopBar({ onUndo, onRedo, actions, onHome }: Props) {
         </button>
       </div>
       <div class="grow" />
+      {tools}
+      {tools && <span class="bar-sep" />}
       <div class="seg" role="group" aria-label="View">
         {VIEWS.map((v) => (
           <button key={v.id} class={view.value === v.id ? 'on' : ''} aria-pressed={view.value === v.id} onClick={() => (view.value = v.id)}>

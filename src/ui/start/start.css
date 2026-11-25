@@ -51,6 +51,26 @@
 .blank-size > i { height: 28px; display: grid; place-items: center; color: var(--faint); font-size: 11px; }
 .blank-size .btn { margin-left: auto; }
 
+.card-head > .mode-seg { margin-left: auto; flex: none; flex-direction: row; gap: 2px; }
+.gen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-self: stretch; }
+.gen-preview { position: relative; max-height: 220px; max-width: 100%; background: rgb(70, 132, 180); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; justify-self: start; width: 100%; }
+.gen-preview canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.gen-ctls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 22px; }
+.gen-ctl { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 12px; color: var(--dim); }
+.gen-ctl input[type=range] { width: 100%; }
+.gen-ctl .val { min-width: 38px; text-align: right; font-family: var(--mono); font-size: 11px; color: var(--txt); }
+.gen-ctl input[type=number] { width: 100%; min-width: 0; }
+.hm-name { color: var(--txt); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hm-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 16px; width: 100%;
+  background: var(--app); border: 1px dashed var(--line-hi); border-radius: var(--r); color: var(--txt); cursor: pointer;
+  transition: border-color .15s var(--ease), background .15s var(--ease);
+}
+.hm-drop:hover, .hm-drop:focus-visible { border-color: var(--sel); background: var(--panel); }
+.hm-drop i { font-size: 22px; color: var(--dim); }
+.hm-drop b { font-size: 13px; font-weight: 600; }
+.hm-drop small { color: var(--dim); font-size: 12px; }
+@media (max-width: 640px) { .gen-ctls { grid-template-columns: minmax(0, 1fr); } .card-head { flex-wrap: wrap; } .card-head .mode-seg { margin-left: 32px; } }
 .blank-note { font-size: 11px; color: var(--dim); font-family: var(--mono); }
 .blank-note.bad { color: var(--warn); font-family: var(--font); }
 

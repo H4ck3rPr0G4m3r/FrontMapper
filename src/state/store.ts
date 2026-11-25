@@ -59,6 +59,8 @@ export const spacePan = signal(false);
 
 /** Current editor zoom (screen px per map px), mirrored from the renderer for the UI. */
 export const zoom = signal(1);
+/** Current camera (map point at the view centre and zoom), for the overview map. */
+export const camera = signal<{ x: number; y: number; zoom: number } | null>(null);
 
 /** True while a segmented job (e.g. texture over selection) is still running. */
 export const busy = signal(false);

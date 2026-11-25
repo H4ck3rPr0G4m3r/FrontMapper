@@ -1,5 +1,6 @@
 import type { ExportSimulation } from './generator';
 import { LAND, VOID, WATER, type MapGrid } from './grid';
+import { BOXED_IN, medianRoom, SMALL_START } from './spawnRoom';
 
 export interface Nation {
   id: string;
@@ -13,7 +14,7 @@ export interface Nation {
   lonLat?: [number, number];
 }
 
-export type NationIssueKind = 'in-water' | 'in-void' | 'off-map' | 'removed-on-export' | 'too-close' | 'unknown-flag' | 'duplicate-name';
+export type NationIssueKind = 'in-water' | 'in-void' | 'off-map' | 'removed-on-export' | 'small-island' | 'boxed-in' | 'too-close' | 'unknown-flag' | 'duplicate-name';
 
 export interface NationIssue {
   nationId: string;
@@ -25,6 +26,8 @@ export const ISSUE_TEXT: Record<NationIssueKind, string> = {
   'in-void': 'Spawns in impassable void',
   'off-map': 'Outside the map',
   'removed-on-export': 'Spawns on an island that gets deleted',
+  'small-island': 'Starts on a small island',
+  'boxed-in': 'Boxed in: little room to grow',
   'too-close': 'Too close to another nation',
   'unknown-flag': 'Flag not available in OpenFront',
   'duplicate-name': 'Name used more than once',
@@ -32,13 +35,20 @@ export const ISSUE_TEXT: Record<NationIssueKind, string> = {
 
 export const MIN_NATION_DISTANCE = 30;
 
-/** Problems with nation placement, flags and names. `flags` null skips the flag check. */
-export function nationIssues(nations: Nation[], g: MapGrid, sim: ExportSimulation | null, flags: Set<string> | null, minDist = MIN_NATION_DISTANCE): NationIssue[] {
+/** Each nation's room to grow and the size of the landmass it starts on (see spawnRoom). */
+export type RoomMap = Map<string, { room: number; island: number }>;
+
+/**
+ * Problems with nation placement, flags and names. `flags` null skips the flag check;
+ * `rooms` null skips the small-island and boxed-in checks.
+ */
+export function nationIssues(nations: Nation[], g: MapGrid, sim: ExportSimulation | null, flags: Set<string> | null, minDist = MIN_NATION_DISTANCE, rooms: RoomMap | null = null): NationIssue[] {
   const out: NationIssue[] = [];
   const removed = new Set<number>();
   if (sim) for (const b of sim.removedIslands) for (const c of b.cells) removed.add(c);
   const names = new Map<string, number>();
   for (const n of nations) names.set(n.name.trim().toLowerCase(), (names.get(n.name.trim().toLowerCase()) ?? 0) + 1);
+  const median = rooms && nations.length >= 3 ? medianRoom(nations.map((n) => rooms.get(n.id)?.room ?? 0)) : 0;
 
   for (const n of nations) {
     const add = (kind: NationIssueKind) => out.push({ nationId: n.id, kind });
@@ -49,6 +59,11 @@ export function nationIssues(nations: Nation[], g: MapGrid, sim: ExportSimulatio
       if (t === WATER) add('in-water');
       else if (t === VOID) add('in-void');
       else if (t === LAND && removed.has(i)) add('removed-on-export');
+      else if (t === LAND && rooms) {
+        const r = rooms.get(n.id);
+        if (r && r.island < SMALL_START) add('small-island');
+        else if (r && median && r.room < BOXED_IN * median) add('boxed-in');
+      }
     }
     if (nations.some((o) => o !== n && Math.hypot(o.x - n.x, o.y - n.y) < minDist)) add('too-close');
     if (flags && n.flag && !flags.has(n.flag)) add('unknown-flag');

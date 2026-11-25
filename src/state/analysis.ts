@@ -8,6 +8,8 @@ export interface Analysis {
   sim: ExportSimulation;
   /** Revision the result belongs to. */
   revision: number;
+  /** Pixels of water, plains, highlands, mountains and void (see TERRAIN_KINDS). */
+  counts: number[];
 }
 
 /** Latest finished analysis, or null before the first one. */
@@ -94,7 +96,7 @@ export class AnalysisClient {
       removedLakes: r.lakes.map((cells, k) => ({ cells, replacement: r.lakeRepl[k] as Terrain })),
       landTiles: r.landTiles,
     };
-    analysis.value = { sim, revision };
+    analysis.value = { sim, revision, counts: r.counts };
     this.renderer()?.setExportSim(sim);
     if (next !== null) void this.send(next);
     else analysisPending.value = false;

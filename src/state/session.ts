@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals';
-import { createGrid } from '../core/grid';
+import { createGrid, type MapGrid } from '../core/grid';
 import { newNationId } from '../core/nations';
 import type { ProjectState } from '../core/project';
 import { analysis, analysisPending } from './analysis';
@@ -36,6 +36,11 @@ export function newBlankMap(width: number, height: number) {
     meta: { name: 'Untitled map', categories: [] },
     nations: [],
   });
+}
+
+/** Open a map made on the start screen (generated or from a heightmap). */
+export function openNewGrid(grid: MapGrid, name: string) {
+  openInEditor({ id: newNationId(), grid, meta: { name, categories: [] }, nations: [] });
 }
 
 export function backToStart() {

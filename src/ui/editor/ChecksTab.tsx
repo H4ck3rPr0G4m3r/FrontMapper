@@ -1,6 +1,7 @@
-import type { ComponentChildren } from 'preact';
+import { Fragment, type ComponentChildren } from 'preact';
 import { signal } from '@preact/signals';
 import { formatCount, sizeTier, TIERS } from '../../core/size';
+import { TERRAIN_KINDS } from '../../core/stats';
 import { analysis, analysisPending } from '../../state/analysis';
 import { acceptedChecks } from '../../state/checks';
 import type { EditorController } from '../../state/controller';
@@ -96,6 +97,8 @@ export function ChecksTab({ controller, children }: Props) {
         {tier === 'Huge' && <p class="note">Large maps run poorly on mobile.</p>}
       </section>
 
+      {a.counts?.length > 0 && <TerrainBreakdown counts={a.counts} />}
+
       <NationSummary />
 
       <section class="grp">
@@ -119,6 +122,41 @@ export function ChecksTab({ controller, children }: Props) {
 
       {children}
     </>
+  );
+}
+
+const pct = (v: number, total: number) => {
+  const p = (v / total) * 100;
+  return p === 0 ? '0%' : p < 0.1 ? '<0.1%' : p < 10 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
+};
+
+/** What the map is made of: a thin segmented bar, and a row per kind with its share. */
+function TerrainBreakdown({ counts }: { counts: number[] }) {
+  const total = counts.reduce((s, v) => s + v, 0) || 1;
+  const kinds = TERRAIN_KINDS.map((k, i) => ({ ...k, n: counts[i] })).filter((k) => k.n > 0);
+  return (
+    <section class="grp">
+      <h4>Terrain</h4>
+      <div class="seg-bar" role="img" aria-label={kinds.map((k) => `${k.label} ${pct(k.n, total)}`).join(', ')}>
+        {kinds.map((k) => (
+          <b key={k.id} style={{ flexGrow: k.n, background: k.color }} title={`${k.label}: ${pct(k.n, total)} (${formatCount(k.n)} px)`} />
+        ))}
+      </div>
+      <dl class="kv terrain-kv">
+        {kinds.map((k) => (
+          <Fragment key={k.id}>
+            <dt>
+              <span class="sw" style={{ background: k.color }} />
+              {k.label}
+            </dt>
+            <dd>
+              {pct(k.n, total)}
+              <small>{formatCount(k.n)}</small>
+            </dd>
+          </Fragment>
+        ))}
+      </dl>
+    </section>
   );
 }
 

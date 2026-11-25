@@ -1,6 +1,7 @@
 import { get, set, del } from 'idb-keyval';
 import { signal } from '@preact/signals';
 import { openProject, saveProjectAsync, type ProjectState } from '../core/project';
+import { deleteAllCheckpoints } from './checkpoints';
 
 export interface RecentEntry {
   id: string;
@@ -43,6 +44,8 @@ export async function loadAutosave(id: string): Promise<ProjectState | null> {
 
 export async function forgetAutosave(id: string) {
   await del(`autosave:${id}`);
+  await deleteAllCheckpoints(id).catch(() => undefined);
+  await del(`refimage:${id}`).catch(() => undefined);
   await set(RECENT_KEY, (await listRecent()).filter((r) => r.id !== id));
 }
 
