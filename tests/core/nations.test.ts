@@ -95,3 +95,18 @@ describe('spawnRoom', () => {
     expect(medianRoom(r.room)).toBe(100);
   });
 });
+
+describe('too-close check on many nations', () => {
+  it('flags exactly the nations within the minimum distance of another, like comparing every pair', () => {
+    let s = 7;
+    const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const g = createGrid(2000, 1000);
+    g.terrain.fill(LAND);
+    const list: Nation[] = Array.from({ length: 1500 }, (_, k) => nation(`${k}`, Math.floor(rand() * 2000), Math.floor(rand() * 1000), { name: `N${k}` }));
+    list.push(nation('off', -40, 10, { name: 'off' }), nation('off2', -40, 30, { name: 'off2' })); // off the map, close to each other
+    const got = new Set(nationIssues(list, g, null, null).filter((i) => i.kind === 'too-close').map((i) => i.nationId));
+    const want = new Set(list.filter((n) => list.some((o) => o !== n && Math.hypot(o.x - n.x, o.y - n.y) < 30)).map((n) => n.id));
+    expect(got).toEqual(want);
+    expect(got.size).toBeGreaterThan(100);
+  });
+});

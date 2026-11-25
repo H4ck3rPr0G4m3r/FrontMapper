@@ -1,5 +1,6 @@
 import { strFromU8, strToU8, unzipSync, zip, zipSync } from 'fflate';
 import type { CustomRegion, ElevationCurve, FrameSize, SelOp } from '../earth/types';
+import type { Georef } from '../earth/georef';
 import { decodeImagePng } from './encode';
 import { createGrid, cropToMultipleOf4, type MapGrid } from './grid';
 import type { MapMeta } from './info';
@@ -25,6 +26,8 @@ export interface ProjectState {
   meta: MapMeta;
   nations: Nation[];
   earth?: EarthSource;
+  /** How an imported or hand-made map lines up with Earth (for the Earth nation tools). */
+  georef?: Georef;
   camera?: { x: number; y: number; zoom: number };
   accepted?: AcceptedChecks;
 }
@@ -45,6 +48,7 @@ function projectFiles(s: ProjectState): Record<string, Uint8Array> {
     meta: s.meta,
     nations: s.nations,
     earth: s.earth,
+    georef: s.georef,
     camera: s.camera,
     accepted: s.accepted,
   };
@@ -78,7 +82,7 @@ export function openProject(bytes: Uint8Array): ProjectState {
   const grid = createGrid(width, height);
   grid.terrain.set(bin.subarray(0, n));
   grid.mag.set(bin.subarray(n));
-  return { id: json.id, grid, meta: json.meta, nations: json.nations ?? [], earth: json.earth, camera: json.camera, accepted: json.accepted };
+  return { id: json.id, grid, meta: json.meta, nations: json.nations ?? [], earth: json.earth, georef: json.georef, camera: json.camera, accepted: json.accepted };
 }
 
 /**

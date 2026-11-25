@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'preact/hooks';
-import { ISSUE_TEXT, type Nation } from '../../core/nations';
+import { memo } from 'preact/compat';
+import { ISSUE_TEXT, type Nation, type NationIssueKind } from '../../core/nations';
 import type { EditorController } from '../../state/controller';
 import { flagCodes, flagUrl } from '../../state/flags';
 import { issuesByNation } from '../../state/nationChecks';
@@ -9,8 +10,10 @@ import { formatCount } from '../../core/size';
 import { meta, nations, project, selectedNation, tool } from '../../state/store';
 import {
   cityMode, cityPicks, cityThreshold, dropCityPicks, earthNationsBusy, earthNationsNote, nationsFromEarth, pickSettings, picking, placeCityPicks, previewCityPicks,
-  rerollCityPicks, type EarthNationSource,
+  rerollCityPicks, hasEarthTarget, type EarthNationSource,
 } from '../../state/earthNationOps';
+import { openAlign } from '../../state/alignState';
+import { online } from '../../state/offline';
 import { nationGuide } from '../../core/nationGuide';
 import { analysis } from '../../state/analysis';
 import type { JSX } from 'preact';
@@ -24,7 +27,7 @@ export function NationsTab({ controller }: { controller: EditorController }) {
   return (
     <>
       <HowManyNations />
-      {project.value?.earth && <FromEarth />}
+      {hasEarthTarget(project.value) ? <FromEarth /> : <LineUp />}
       <section class="grp">
         <h4>{list.length ? `${list.length} ${list.length === 1 ? 'nation' : 'nations'}` : 'Nations'}</h4>
         {!list.length && (
@@ -33,13 +36,7 @@ export function NationsTab({ controller }: { controller: EditorController }) {
           </p>
         )}
         <CrowdedFix />
-        {list.length > 0 && (
-          <ul class="nations">
-            {list.map((n) => (
-              <NationRow key={n.id} n={n} controller={controller} />
-            ))}
-          </ul>
-        )}
+        {list.length > 0 && <NationList list={list} controller={controller} />}
         {tool.value !== 'spawn' && (
           <button class="btn grp-action" onClick={() => (tool.value = 'spawn')}>
             <i aria-hidden="true" class="ph ph-flag" />
@@ -107,10 +104,55 @@ function StartingRoom({ controller }: { controller: EditorController }) {
   );
 }
 
-function NationRow({ n, controller }: { n: Nation; controller: EditorController }) {
+/** Rows rendered at first, and per "Show more"; maps from Earth data can have thousands of nations. */
+const PAGE = 100;
+
+/**
+ * The nations, a page at a time once there are many, with a search box. Rows only re-render when
+ * their own nation, issues or selection change, so typing a name doesn't redraw the whole list.
+ */
+function NationList({ list, controller }: { list: Nation[]; controller: EditorController }) {
+  const [q, setQ] = useState('');
+  const [limit, setLimit] = useState(PAGE);
+  const issues = issuesByNation.value;
+  const sel = selectedNation.value;
+  const s = q.trim().toLowerCase();
+  const matches = useMemo(() => (s ? list.filter((n) => n.name.toLowerCase().includes(s)) : list), [list, s]);
+  let shown = matches.slice(0, limit);
+  // The nation picked on the map is always in the list.
+  const picked = sel && !shown.some((n) => n.id === sel) ? list.find((n) => n.id === sel) : undefined;
+  if (picked) shown = [picked, ...shown];
+  return (
+    <>
+      {list.length > PAGE && (
+        <input class="nation-find" type="search" placeholder={`Find among ${list.length} nations`} aria-label="Find a nation" value={q} onInput={(e) => { setQ((e.currentTarget as HTMLInputElement).value); setLimit(PAGE); }} />
+      )}
+      <ul class="nations">
+        {shown.map((n) => (
+          <NationRow key={n.id} n={n} selected={n.id === sel} issueKinds={issues.get(n.id)?.map((i) => i.kind).join(' ') ?? ''} controller={controller} />
+        ))}
+      </ul>
+      {s && !matches.length && <p class="empty-note">No nation matches that.</p>}
+      {matches.length > limit && (
+        <button class="undo-accept room-more" onClick={() => setLimit(limit + PAGE * 2)}>
+          {`Show more (${matches.length - limit} not shown)`}
+        </button>
+      )}
+    </>
+  );
+}
+
+interface RowProps {
+  n: Nation;
+  selected: boolean;
+  /** The nation's issue kinds, space separated ('' for none): a string, so unchanged rows compare equal. */
+  issueKinds: string;
+  controller: EditorController;
+}
+
+const NationRow = memo(function NationRow({ n, selected, issueKinds, controller }: RowProps) {
   const [picking, setPicking] = useState(false);
-  const issues = issuesByNation.value.get(n.id);
-  const selected = selectedNation.value === n.id;
+  const issues = issueKinds ? (issueKinds.split(' ') as NationIssueKind[]).map((kind) => ({ kind })) : undefined;
   return (
     <li class={`nation${selected ? ' on' : ''}`}>
       <div class="nation-row" onClick={() => { selectedNation.value = n.id; controller.focusNation(n.id); }}>
@@ -141,7 +183,7 @@ function NationRow({ n, controller }: { n: Nation; controller: EditorController 
       {picking && <FlagPicker current={n.flag} onPick={(f) => { update(n.id, { flag: f }); setPicking(false); }} />}
     </li>
   );
-}
+});
 
 const FLAG_PAGE = 60;
 
@@ -349,6 +391,26 @@ function CityNations({ btn }: { btn: Btn }) {
   );
 }
 
+/** For maps not made from Earth data: pin them to Earth to use the Earth nation tools. */
+function LineUp() {
+  const pins = project.value?.georef?.pins.length ?? 0;
+  return (
+    <section class="grp line-up">
+      <h4>From Earth</h4>
+      <p class="empty-note">
+        {pins
+          ? "This map's pins no longer fit. Open the alignment to check them."
+          : 'Made this map yourself? Line it up with Earth to place cities, countries and provinces on it.'}
+      </p>
+      <button class="btn grp-action" disabled={!online.value} onClick={openAlign}>
+        <i aria-hidden="true" class="ph ph-globe-hemisphere-west" />
+        Line up with Earth
+      </button>
+      {!online.value && <p class="note">Needs a connection for the satellite view.</p>}
+    </section>
+  );
+}
+
 function FromEarth() {
   const busy = earthNationsBusy.value;
   const note = earthNationsNote.value;
@@ -361,6 +423,13 @@ function FromEarth() {
   return (
     <section class="grp from-earth">
       <h4>From Earth</h4>
+      {!project.value?.earth && (
+        <div class="fe-aligned">
+          <i aria-hidden="true" class="ph ph-push-pin" />
+          <span>{`Lined up with ${project.value?.georef?.pins.length ?? 0} pins`}</span>
+          <button class="btn sm" disabled={!online.value} onClick={openAlign}>Edit</button>
+        </div>
+      )}
       <CityNations btn={btn} />
       <div class="fe-regions">
         {btn('country', 'ph-globe-hemisphere-east', 'Countries')}

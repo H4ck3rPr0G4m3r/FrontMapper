@@ -24,7 +24,7 @@ export function openInEditor(s: ProjectState) {
   acceptedChecks.value = s.accepted ?? NO_ACCEPTED;
   nations.value = s.nations;
   sources.value = s.earth ? ['osm', 'terrain-tiles', 'geoboundaries', 'natural-earth', 'geonames'] : [];
-  project.value = { id: s.id, grid: s.grid, earth: s.earth, camera: s.camera };
+  project.value = { id: s.id, grid: s.grid, earth: s.earth, georef: s.georef, camera: s.camera };
   screen.value = 'editor';
 }
 

@@ -3,6 +3,7 @@ import type { MapGrid } from '../core/grid';
 import type { Nation } from '../core/nations';
 import type { MapMeta } from '../core/info';
 import type { EarthSource } from '../core/project';
+import type { Georef } from '../earth/georef';
 import type { SourceId } from '../core/credits';
 import type { Selection, WandOpts } from '../core/selection';
 import type { Symmetry } from '../core/symmetry';
@@ -19,6 +20,8 @@ export interface EditorProject {
   grid: MapGrid;
   /** Present for maps converted from Earth data (re-framing, credits). */
   earth?: EarthSource;
+  /** Pins lining an imported or hand-made map up with Earth. */
+  georef?: Georef;
   /** Camera to restore when the project is reopened. */
   camera?: { x: number; y: number; zoom: number };
 }
