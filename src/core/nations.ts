@@ -9,7 +9,8 @@ export interface Nation {
   y: number;
   /** OpenFront flag file name without `.svg`; '' for no flag. */
   flag: string;
-  source: 'custom' | 'city' | 'country' | 'province';
+  /** custom: placed by hand; region: one of the user's own regions on an Earth map. */
+  source: 'custom' | 'city' | 'country' | 'province' | 'region';
   /** Where it sits on Earth, for maps made from Earth data (lets re-framing keep it in place). */
   lonLat?: [number, number];
 }
@@ -72,7 +73,7 @@ export function nationIssues(nations: Nation[], g: MapGrid, sim: ExportSimulatio
   return out;
 }
 
-const KEEP_RANK: Record<Nation['source'], number> = { custom: 0, country: 1, province: 2, city: 3 };
+const KEEP_RANK: Record<Nation['source'], number> = { custom: 0, region: 1, country: 1, province: 2, city: 3 };
 
 /**
  * Ids of auto-placed nations to delete so that none sits within `minDist` of a kept one.

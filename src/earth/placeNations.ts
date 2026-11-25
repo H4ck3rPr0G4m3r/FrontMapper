@@ -3,9 +3,9 @@ import type { Nation } from '../core/nations';
 import { countriesNear, regionRaster, type RegionLoaders, type RegionShape } from './convert';
 import { cityNations, regionNations, type RegionInfo } from './earthNations';
 import type { CityRow } from './regions';
-import type { FrameSize } from './types';
+import type { CustomRegion, FrameSize } from './types';
 
-export type EarthNationSource = 'city' | 'country' | 'province';
+export type EarthNationSource = 'city' | 'country' | 'province' | 'region';
 
 export interface PlaceNationsRequest {
   source: EarthNationSource;
@@ -16,6 +16,8 @@ export interface PlaceNationsRequest {
   minPop: number;
   /** OpenFront flag codes, or null when unknown (flags are then used unchecked). */
   flags: string[] | null;
+  /** The user's own regions, for `region`. */
+  regions?: CustomRegion[];
 }
 
 /** Country (and for provinces, province) of every non-water pixel, rebuilt from the borders. */
@@ -29,7 +31,7 @@ async function regionsFor(level: 'country' | 'province', fs: FrameSize, g: MapGr
   const countryInfo = (id: string) => info.set(id, { name: props.get(id)?.name ?? id, iso2: props.get(id)?.iso2 ?? '' });
   if (level === 'country') {
     country.index.forEach(countryInfo);
-    return { grid: country.grid, index: country.index, info };
+    return { grid: country.grid, index: country.index, info, provCountry: new Map<string, string>() };
   }
 
   // Provinces of every country with land on the map; countries without province data stay whole.
@@ -70,7 +72,7 @@ async function regionsFor(level: 'country' | 'province', fs: FrameSize, g: MapGr
       if (k >= 0 && provCountry.get(prov.index[k]) === a3) grid[i] = k;
     } else if (countryLabel.has(c)) grid[i] = countryLabel.get(c)!;
   }
-  return { grid, index, info };
+  return { grid, index, info, provCountry };
 }
 
 /** Nations of one source for an Earth map (runs in the nations worker). */
@@ -78,6 +80,37 @@ export async function placeEarthNations(req: PlaceNationsRequest, regions: Regio
   const g: MapGrid = { width: req.width, height: req.height, terrain: req.terrain, mag: new Uint8Array(0) };
   const flags = req.flags ? new Set(req.flags) : null;
   if (req.source === 'city') return cityNations(cities, req.fs, g, req.minPop, flags);
+  if (req.source === 'region') return customRegionNations(req, g, regions, cities, flags);
   const r = await regionsFor(req.source, req.fs, g, regions);
   return regionNations(req.source, req.fs, g, r.grid, r.index, cities, flags, r.info);
+}
+
+/**
+ * One nation per custom region: provinces and countries are rasterised as usual, then every
+ * pixel of a member (a province, or any province of a member country) counts for its region.
+ * The nation sits at a member country's capital when one is on the region's land, otherwise
+ * at the point deepest inside the region. It takes the flag of the region's first country.
+ */
+async function customRegionNations(req: PlaceNationsRequest, g: MapGrid, regions: RegionLoaders, cities: CityRow[], flags: Set<string> | null): Promise<Nation[]> {
+  const list = (req.regions ?? []).filter((r) => r.members.length);
+  if (!list.length) return [];
+  const r = await regionsFor('province', req.fs, g, regions);
+  const ofProvince = new Map<string, number>();
+  const ofCountry = new Map<string, number>();
+  list.forEach((c, k) => {
+    for (const m of c.members) (m.level === 'province' ? ofProvince : ofCountry).set(m.id, k);
+  });
+  // Label -> custom region: the province itself, else its country (or a country without provinces).
+  const labelTo = r.index.map((id) => ofProvince.get(id) ?? ofCountry.get(r.provCountry.get(id) ?? id) ?? -1);
+  const grid = new Int16Array(r.grid.length).fill(-1);
+  for (let i = 0; i < grid.length; i++) if (r.grid[i] >= 0) grid[i] = labelTo[r.grid[i]];
+  const low = await regions.countriesLow();
+  const iso2 = new Map(low.features.map((f) => [f.properties.id, f.properties.iso2]));
+  const info: RegionInfo = new Map();
+  const ids = list.map((c) => c.id);
+  list.forEach((c) => {
+    const first = c.members[0];
+    info.set(c.id, { name: c.name, iso2: iso2.get(first.level === 'country' ? first.id : first.country ?? '') ?? '' });
+  });
+  return regionNations('country', req.fs, g, grid, ids, cities, flags, info).map((n) => ({ ...n, source: 'region' as const }));
 }

@@ -4,6 +4,7 @@ import { forgetAutosave, listRecent, loadAutosave, type RecentEntry } from '../.
 import { countriesLow, ensureCountries } from '../../state/earthState';
 import { openInEditor, screen } from '../../state/session';
 import { NewMapCard } from './NewMapCard';
+import { offlineReady, online } from '../../state/offline';
 import { readFile } from '../download';
 import './start.css';
 
@@ -110,6 +111,19 @@ export function StartScreen() {
         <i aria-hidden="true" class="ph-bold ph-map-trifold" />
         <h1>FrontMapper</h1>
         <span>Map maker for OpenFront</span>
+        {!online.value ? (
+          <span class="conn off" role="status">
+            <i aria-hidden="true" class="ph ph-cloud-slash" />
+            Offline: editing works, Earth needs a connection
+          </span>
+        ) : (
+          offlineReady.value && (
+            <span class="conn" title="FrontMapper is saved on this device and opens without a connection.">
+              <i aria-hidden="true" class="ph ph-cloud-check" />
+              Works offline
+            </span>
+          )
+        )}
       </header>
 
       {error && (
@@ -125,11 +139,11 @@ export function StartScreen() {
       <div class="start-grid">
         <section class="start-col">
           <h2>New map</h2>
-          <button class="earth-card" onClick={() => (screen.value = 'earth')}>
+          <button class="earth-card" disabled={!online.value} onClick={() => (screen.value = 'earth')}>
             <WorldStrip />
             <span class="earth-card-txt">
               <b>From Earth</b>
-              <small>Pick countries or an area on the satellite view and convert it.</small>
+              <small>{online.value ? 'Pick countries or an area on the satellite view and convert it.' : 'Needs an internet connection for satellite imagery and terrain.'}</small>
             </span>
             <i aria-hidden="true" class="ph-bold ph-arrow-right earth-card-go" />
           </button>

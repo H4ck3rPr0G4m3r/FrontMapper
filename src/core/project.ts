@@ -1,5 +1,5 @@
 import { strFromU8, strToU8, unzipSync, zip, zipSync } from 'fflate';
-import type { ElevationCurve, FrameSize, SelOp } from '../earth/types';
+import type { CustomRegion, ElevationCurve, FrameSize, SelOp } from '../earth/types';
 import { decodeImagePng } from './encode';
 import { createGrid, cropToMultipleOf4, type MapGrid } from './grid';
 import type { MapMeta } from './info';
@@ -9,6 +9,8 @@ export interface EarthSource {
   ops: SelOp[];
   frameSize: FrameSize;
   curve: ElevationCurve;
+  /** Countries and provinces grouped into regions of the user's own. */
+  regions?: CustomRegion[];
 }
 
 /** Removal warnings the user accepted on the Checks tab. */

@@ -29,6 +29,17 @@ Some machines intercept TLS. The npm scripts that reach the network run Node wit
 
 `.github/workflows/pages.yml` tests, builds with `PAGES_BASE=/FrontMapper/` and deploys `dist/` to GitHub Pages on every push to `main`.
 
+`.github/workflows/generator-drift.yml` runs `npm run verify:generator` against the latest OpenFrontIO
+every Monday (and on pull requests that touch `src/core/generator.ts`). When the Checks tab stops
+matching the Go generator it opens an issue, and closes it once they match again.
+
+## Offline
+
+The production build ships a service worker (`scripts/pwa/`, generated at build time with every
+built file in its precache list). After one visit the editor, the start screen, map generation and
+heightmap import work without a connection; Earth conversion still needs one (satellite imagery,
+elevation tiles and detailed borders load on demand). Dev mode has no service worker.
+
 ## How Earth conversion works
 
 1. **Coastlines:** water polygons from the OpenFreeMap `water` layer (OpenStreetMap), rasterised at the map's resolution.

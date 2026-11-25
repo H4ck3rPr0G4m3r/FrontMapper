@@ -207,6 +207,7 @@ function FromEarth() {
         {btn('country', 'ph-globe-hemisphere-east', 'Countries')}
         {btn('province', 'ph-squares-four', 'Provinces')}
       </div>
+      {(project.value?.earth?.regions?.length ?? 0) > 0 && <div class="fe-custom">{btn('region', 'ph-selection-plus', 'Your regions')}</div>}
       <p class="hint-line">Each replaces the nations it placed before. Ones placed by hand stay.</p>
       {note && (
         <p class={`fe-note${note.error ? ' err' : ''}`} role="status">

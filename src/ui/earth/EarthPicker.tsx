@@ -5,6 +5,7 @@ import { canConvert, countriesLow, earthOps, earthTool, ensureProvinces, provinc
 import { EarthMap } from './EarthMap';
 import { SearchBox, type SearchHit } from './SearchBox';
 import { SizePanel } from './SizePanel';
+import { CustomRegions } from './CustomRegions';
 import { ConvertProgress } from './ConvertProgress';
 import { reconverting } from '../../state/conversion';
 import './earth.css';
@@ -55,7 +56,7 @@ export function EarthPicker({ onBack, onConvert }: Props) {
   return (
     <div class="earth screen-in">
       <header class="earth-top">
-        <button class="icon-btn" aria-label={again ? 'Back to editor' : 'Back to start'} title={again ? 'Back to the editor, unchanged' : 'Back to start'} onClick={onBack}>
+        <button class="icon-btn" aria-label={again ? 'Back to editor' : 'Back to start'} title={again ? 'Back to the editor without converting (your regions are kept)' : 'Back to start'} onClick={onBack}>
           <i aria-hidden="true" class="ph ph-arrow-left" />
         </button>
         <SearchBox onPick={pick} />
@@ -113,6 +114,7 @@ export function EarthPicker({ onBack, onConvert }: Props) {
               )}
             </div>
           </section>
+          <CustomRegions />
           <SizePanel />
           </div>
           <div class="earth-foot">

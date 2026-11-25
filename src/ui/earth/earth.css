@@ -96,4 +96,15 @@
 @keyframes cv-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .cv-steps li.now i { animation: none; } .cv-scrim, .cv-card { animation: none; } }
 .size-problem { margin: 10px 0 0; padding: 7px 10px; background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: var(--r); color: var(--txt); font-size: 11px; line-height: 1.5; }
+.custom-regions .grp-action { margin-top: 10px; }
+.cr-list { list-style: none; margin: 0 -6px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.cr-list li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 4px 4px 4px 8px; border-radius: var(--r); }
+.cr-list li:hover { background: var(--btn); }
+.cr-sw { width: 10px; height: 10px; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35); }
+.cr-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cr-main input { height: 24px; padding: 0 5px; margin-left: -5px; background: transparent; border-color: transparent; font-weight: 500; font-size: 12px; }
+.cr-main input:hover { border-color: var(--line-hi); }
+.cr-main input:focus { border-color: var(--sel); background: var(--app); }
+.cr-main small { color: var(--faint); font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.custom-regions .hint-line { margin: 8px 0 0; font-size: 11px; color: var(--dim); }
 .reconvert-note { margin: 0 0 10px; font-size: 11px; line-height: 1.5; color: var(--dim); }
