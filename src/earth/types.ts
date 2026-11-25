@@ -24,6 +24,21 @@ export type SelShape =
   | { kind: 'circle'; center: LonLat; radiusM: number }
   | { kind: 'lasso'; points: LonLat[] };
 
+/** A country, or a province of `country`, picked on the Earth map. */
+export interface RegionRef {
+  level: 'country' | 'province';
+  id: string;
+  /** Country (ADM0_A3) a province belongs to. */
+  country?: string;
+}
+
+/** Countries and provinces grouped into one region of the user's own; it becomes one nation. */
+export interface CustomRegion {
+  id: string;
+  name: string;
+  members: RegionRef[];
+}
+
 export interface SelOp {
   mode: 'add' | 'subtract';
   shape: SelShape;

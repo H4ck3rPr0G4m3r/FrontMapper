@@ -176,3 +176,20 @@ test('one click removes auto-placed nations that crowd each other, with undo', a
   await page.getByRole('button', { name: 'Undo removing crowded nations' }).click();
   await expect(page.getByLabel('Nation name')).toHaveCount(before);
 });
+
+test('your own regions become nations', async ({ page }) => {
+  test.setTimeout(60_000);
+  await open(page);
+  await stubTiles(page, { fail: false });
+  await selectSmallIndonesia(page);
+  await page.getByRole('button', { name: /Group selection/ }).click();
+  const name = page.getByRole('textbox', { name: 'Region name' });
+  await expect(name).toHaveValue('Indonesia');
+  await name.fill('Nusantara');
+  await page.getByRole('button', { name: 'Convert to map' }).click();
+  await expect(page.locator('.ed-title')).toContainText('Indonesia', { timeout: 30_000 });
+  await page.getByRole('tab', { name: /Nations/ }).click();
+  await page.getByRole('button', { name: 'Your regions' }).click();
+  await expect(page.getByRole('status')).toHaveText('Placed 1 region.');
+  await expect(page.getByLabel('Nation name')).toHaveValue('Nusantara');
+});

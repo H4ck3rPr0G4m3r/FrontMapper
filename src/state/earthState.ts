@@ -4,7 +4,7 @@ import { autoFrame, fitSize, frameAround, lonLatToMerc, partsOf, setSide, type P
 import { loadCountriesLow, loadCountry, loadProvinces, type CountryProps, type ProvinceProps } from '../earth/regions';
 import { hasSelection } from '../earth/selectionOps';
 import { sizeProblem } from '../core/size';
-import { DEFAULT_CURVE, type ElevationCurve, type FrameSize, type LonLat, type SelOp, type SelShape } from '../earth/types';
+import { DEFAULT_CURVE, type CustomRegion, type ElevationCurve, type FrameSize, type LonLat, type SelOp, type SelShape } from '../earth/types';
 
 export type EarthTool = 'country' | 'province' | 'rect' | 'lasso' | 'circle';
 
@@ -13,6 +13,8 @@ export const earthOps = signal<SelOp[]>([]);
 export const frameSize = signal<FrameSize | null>(null);
 export const linked = signal(false);
 export const curve = signal<ElevationCurve>(DEFAULT_CURVE);
+/** Countries and provinces grouped into regions of the user's own (one nation each). */
+export const customRegions = signal<CustomRegion[]>([]);
 export const outliers = signal<Part[]>([]);
 export const includeOutliers = signal(false);
 /** Output width remembered across selection changes. */
@@ -137,8 +139,9 @@ export function moveFrameEdge(edge: 'w' | 'e' | 'n' | 's', lon: number, lat: num
 }
 
 /** Load picker state (e.g. from a project converted earlier). */
-export function restoreEarth(s: { ops: SelOp[]; frameSize: FrameSize; curve: ElevationCurve } | null) {
+export function restoreEarth(s: { ops: SelOp[]; frameSize: FrameSize; curve: ElevationCurve; regions?: CustomRegion[] } | null) {
   earthOps.value = s?.ops ?? [];
+  customRegions.value = s?.regions ?? [];
   frameSize.value = s?.frameSize ?? null;
   curve.value = s?.curve ?? DEFAULT_CURVE;
   if (s) preferredWidth.value = s.frameSize.width;

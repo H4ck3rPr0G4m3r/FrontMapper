@@ -5,5 +5,7 @@ import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
 import './ui/theme.css';
 import { App } from './ui/App';
+import { watchConnection } from './state/offline';
 
+watchConnection();
 render(<App />, document.getElementById('app')!);

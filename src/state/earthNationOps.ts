@@ -11,7 +11,7 @@ export const earthNationsBusy = signal<EarthNationSource | null>(null);
 export const earthNationsNote = signal<{ source: EarthNationSource; text: string; error?: boolean } | null>(null);
 export const cityThreshold = signal(1_000_000);
 
-const LABEL: Record<EarthNationSource, [string, string]> = { city: ['city', 'cities'], country: ['country', 'countries'], province: ['province', 'provinces'] };
+const LABEL: Record<EarthNationSource, [string, string]> = { city: ['city', 'cities'], country: ['country', 'countries'], province: ['province', 'provinces'], region: ['region', 'regions'] };
 
 /** Borders are rasterised and searched in a worker, so huge maps don't freeze the editor. */
 function place(req: PlaceNationsRequest): Promise<Nation[]> {
@@ -46,6 +46,7 @@ export async function nationsFromEarth(source: EarthNationSource) {
       terrain: p.grid.terrain.slice(),
       minPop: cityThreshold.value,
       flags: flagCodes.value,
+      regions: p.earth.regions,
     });
     if (project.value?.id !== p.id) return;
     nations.value = [...nations.value.filter((n) => n.source !== source), ...made];

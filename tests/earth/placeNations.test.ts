@@ -39,4 +39,20 @@ describe('placeEarthNations', () => {
     expect(north.y).toBeLessThan(120);
     expect(north.source).toBe('province');
   });
+
+  it('places one nation per custom region, spanning a province and a whole country', async () => {
+    const custom = [
+      { id: 'r1', name: 'Southern Union', members: [{ level: 'province' as const, id: 'P2', country: 'AAA' }, { level: 'country' as const, id: 'BBB' }] },
+      { id: 'r2', name: 'Northmark', members: [{ level: 'province' as const, id: 'P1', country: 'AAA' }] },
+      { id: 'r3', name: 'Nowhere', members: [] },
+    ];
+    const out = await placeEarthNations({ ...base, source: 'region', regions: custom }, regions, []);
+    expect(out.map((n) => n.name).sort()).toEqual(['Northmark', 'Southern Union']);
+    const north = out.find((n) => n.name === 'Northmark')!;
+    expect(north.y).toBeLessThan(120);
+    expect(north.flag).toBe('aa');
+    expect(out.every((n) => n.source === 'region')).toBe(true);
+    const south = out.find((n) => n.name === 'Southern Union')!;
+    expect(south.y >= 120 || south.x >= 130).toBe(true);
+  });
 });

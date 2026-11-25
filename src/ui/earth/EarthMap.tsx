@@ -7,9 +7,8 @@ import { mercToLonLat } from '../../earth/projection';
 import type { CountryProps, ProvinceProps } from '../../earth/regions';
 import { addShape, selectedRegionIds, toggleRegion } from '../../earth/selectionOps';
 import type { LonLat, SelShape } from '../../earth/types';
-import {
-  countriesLow, earthOps, earthTool, ensureCountries, ensureCountryDetail, ensureProvinces, frameSize, includeOutliers, moveFrameEdge, provincesByCountry, recomputeFrame,
-} from '../../state/earthState';
+import { countriesLow, customRegions, earthOps, earthTool, ensureCountries, ensureCountryDetail, ensureProvinces, frameSize, includeOutliers, moveFrameEdge, provincesByCountry, recomputeFrame } from '../../state/earthState';
+import { regionColor } from './CustomRegions';
 
 const SHIFTS = [-360, 0, 360];
 const IMAGERY = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -47,10 +46,22 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
         const c = regions.get(key('province', p))?.country;
         if (c) provinceCountries.add(c);
       }
-      return { ids, provinceCountries, onlyRegions: earthOps.value.every((o) => o.shape.kind === 'region'), any: ids.country.size + ids.province.size > 0 };
+      // Fill of each country and province that is part of one of the user's regions.
+      const custom = new Map<string, string>();
+      customRegions.value.forEach((c, k) => {
+        const color = regionColor(k);
+        if (color) for (const m of c.members) custom.set(key(m.level, m.id), color);
+      });
+      return { ids, provinceCountries, custom, onlyRegions: earthOps.value.every((o) => o.shape.kind === 'region'), any: ids.country.size + ids.province.size > 0 };
     };
 
     const style = (r: Layered, st = selState()): L.PathOptions => {
+      const base = baseStyle(r, st);
+      const fill = st.custom.get(key(r.kind, r.id));
+      return fill ? { ...base, fillColor: fill, fillOpacity: 0.42 } : base;
+    };
+
+    const baseStyle = (r: Layered, st: ReturnType<typeof selState>): L.PathOptions => {
       const { ids, onlyRegions, any } = st;
       const k = key(r.kind, r.id);
       const hover = k === hovered;
@@ -291,6 +302,7 @@ export function EarthMap({ onFlyTo }: { onFlyTo?: (fn: (b: L.LatLngBoundsExpress
     const stop = [
       effect(() => {
         earthOps.value;
+        customRegions.value;
         provincesByCountry.value;
         if (loaded) restyle();
         drawShapes();

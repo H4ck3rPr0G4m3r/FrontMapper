@@ -3,7 +3,7 @@ import type { ConvertStep } from '../earth/convert';
 import { selectedRegionIds } from '../earth/selectionOps';
 import type { ConvertWorkerRequest, ConvertWorkerResponse } from '../workers/convert.worker';
 import { newNationId } from '../core/nations';
-import { countriesLow, curve, earthOps, frameSize, provincesByCountry, restoreEarth } from './earthState';
+import { countriesLow, curve, customRegions, earthOps, frameSize, provincesByCountry, restoreEarth } from './earthState';
 import { placeByLonLat } from '../earth/earthNations';
 import type { ProjectState } from '../core/project';
 import { openInEditor, screen } from './session';
@@ -30,7 +30,9 @@ export function leavePicker() {
   cancelConvert();
   const s = reconverting.value;
   reconverting.value = null;
-  if (s) openInEditor(s);
+  // Regions grouped in the picker need no new terrain, so they are kept without converting.
+  const regions = customRegions.value;
+  if (s) openInEditor(s.earth ? { ...s, earth: { ...s.earth, regions: regions.length ? regions : undefined } } : s);
   else screen.value = 'start';
 }
 
@@ -55,6 +57,7 @@ export function startConvert() {
   if (!fs) return;
   cancelConvert();
   const req = { fs, ops: earthOps.value, curve: curve.value };
+  const regions = customRegions.value;
   const prev = reconverting.value;
   const title = prev ? prev.meta.name.trim() || selectionTitle() : selectionTitle();
   const w = (worker = new Worker(new URL('../workers/convert.worker.ts', import.meta.url), { type: 'module' }));
@@ -71,7 +74,7 @@ export function startConvert() {
       stop();
       convertStatus.value = null;
       const { grid } = m.result;
-      const earth = { ops: req.ops, frameSize: req.fs, curve: req.curve };
+      const earth = { ops: req.ops, frameSize: req.fs, curve: req.curve, regions: regions.length ? regions : undefined };
       reconverting.value = null;
       // Re-converting keeps the map's identity, info and nations; Earth nations follow their lon/lat.
       if (prev) openInEditor({ id: prev.id, grid, meta: prev.meta, nations: placeByLonLat(prev.nations, req.fs), earth, accepted: prev.accepted });
