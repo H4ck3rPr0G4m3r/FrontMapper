@@ -4,6 +4,12 @@ import { SEGMENT } from '../segments';
 
 export type Paint = { terrain: Terrain; mag: number };
 
+/**
+ * While `cells` is set, every Edit records the index of each cell it is about to change.
+ * Symmetry painting uses this to copy exactly the changed cells to their mirror positions.
+ */
+export const touchLog: { cells: number[] | null } = { cells: null };
+
 /** Tracks the bounding box of changed cells and snapshots segments before they change. */
 export class Edit {
   x0 = Infinity;
@@ -19,6 +25,7 @@ export class Edit {
 
   /** Call before writing cell (x, y). */
   touch(x: number, y: number) {
+    touchLog.cells?.push(y * this.g.width + x);
     if (x < this.x0) this.x0 = x;
     if (y < this.y0) this.y0 = y;
     if (x > this.x1) this.x1 = x;

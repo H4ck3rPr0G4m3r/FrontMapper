@@ -66,6 +66,15 @@ export class History {
     return patches.map((p) => p.seg);
   }
 
+  /** Close the transaction by putting back everything it changed; returns the restored segments. */
+  abort(): number[] {
+    const open = this.open;
+    this.open = null;
+    if (!open) return [];
+    for (const p of open.patches.values()) this.paste(p.seg, p.before);
+    return [...open.patches.keys()];
+  }
+
   undo(): number[] {
     const e = this.undoStack.pop();
     if (!e) return [];

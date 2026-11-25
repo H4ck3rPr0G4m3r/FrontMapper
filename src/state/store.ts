@@ -4,12 +4,14 @@ import type { Nation } from '../core/nations';
 import type { MapMeta } from '../core/info';
 import type { EarthSource } from '../core/project';
 import type { SourceId } from '../core/credits';
-import type { Selection } from '../core/selection';
+import type { Selection, WandOpts } from '../core/selection';
+import type { Symmetry } from '../core/symmetry';
+import type { RiverReport } from '../core/tools/rivers';
 import type { Paint } from '../core/tools/common';
 import type { TextureOpts } from '../core/tools/texture';
 import type { ViewMode } from '../render/renderer';
 
-export type Tool = 'pan' | 'select' | 'brush' | 'fill' | 'raise' | 'smooth' | 'texture' | 'eyedropper' | 'spawn';
+export type Tool = 'pan' | 'select' | 'wand' | 'brush' | 'fill' | 'river' | 'raise' | 'smooth' | 'texture' | 'eyedropper' | 'spawn';
 
 export interface EditorProject {
   /** Stable id used for autosave. */
@@ -33,6 +35,20 @@ export const brushDiameter = signal(12);
 export const raiseAmount = signal(3);
 export const textureOpts = signal<TextureOpts>({ mode: 'coast+elevation', strength: 0.6, grain: 12, seed: 1 });
 export const selection = signal<Selection>(null);
+/** Magic wand matching rules. */
+export const wandOpts = signal<WandOpts>({ tolerance: 30, contiguous: true });
+/** True while a moved, flipped or pasted piece of map floats above the map, not yet placed. */
+export const floating = signal(false);
+/** Something has been copied and can be pasted. */
+export const canPaste = signal(false);
+/** Mirror painting across the map's centre. */
+export const symmetry = signal<Symmetry>('off');
+/** River tool width in pixels. */
+export const riverWidth = signal(1);
+/** Whether the river drawn last survives export (null until one is drawn). */
+export const riverStatus = signal<{ stays: boolean; size: number } | null>(null);
+/** What Grow rivers would change, shown on the map before it is applied. */
+export const riverPreview = signal<RiverReport | null>(null);
 
 /** Bumped after every committed edit, undo and redo (drives re-analysis). */
 export const revision = signal(0);
