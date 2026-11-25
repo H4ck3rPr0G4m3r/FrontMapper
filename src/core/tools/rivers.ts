@@ -1,6 +1,6 @@
 import { LAND, VOID, WATER, type MapGrid, type Rect } from '../grid';
 import type { History } from '../history';
-import { MIN_ISLAND, MIN_LAKE } from '../generator';
+import { MIN_ISLAND, MIN_LAKE, simulateExport } from '../generator';
 import { Edit } from './common';
 
 /** Largest stretch of land a river gap may span in any direction (pixels). */
@@ -121,10 +121,15 @@ export function growRivers(g: MapGrid, h: History | null, min = MIN_LAKE): River
   for (const l of smallIds) if (!river[l]) ponds++;
 
   const wasIsland = smallLand(g, MIN_ISLAND, n4);
-  const carved: number[] = [];
+  let carved: number[] = [];
+  /** Elevation of each carved cell before it became water, to put back what does not help. */
+  const before = new Map<number, number>();
+  /** What each change was for, so the report only counts changes that were kept. */
+  const actions: { kind: 'joint' | 'bridge' | 'widen'; cells: number[] }[] = [];
   const toWater = (i: number) => {
     const x = i % w;
     e.touch(x, (i - x) / w);
+    if (!before.has(i)) before.set(i, g.mag[i]);
     terrain[i] = WATER;
     g.mag[i] = 0;
     carved.push(i);
@@ -150,7 +155,6 @@ export function growRivers(g: MapGrid, h: History | null, min = MIN_LAKE): River
   const joinable = (r: number) => safe(r) || river[r];
 
   // 1. Corner joints.
-  let joints = 0;
   for (const l of smallIds) {
     if (!river[l]) continue;
     for (const i of cells[l]!.slice()) {
@@ -167,13 +171,12 @@ export function growRivers(g: MapGrid, h: History | null, min = MIN_LAKE): River
         if (via < 0) continue;
         const merged = union(r, o);
         carve(via, merged);
-        joints++;
+        actions.push({ kind: 'joint', cells: [via] });
       }
     }
   }
 
   // 2. Bridges, until no river piece that would be lost can reach anything more.
-  let bridges = 0;
   for (let progress = true; progress; ) {
     progress = false;
     const done = new Set<number>();
@@ -186,7 +189,7 @@ export function growRivers(g: MapGrid, h: History | null, min = MIN_LAKE): River
       if (!path) continue;
       const merged = union(r, find(label[path.to]));
       for (const i of path.land) carve(i, merged);
-      bridges++;
+      actions.push({ kind: 'bridge', cells: path.land });
       progress = true;
     }
   }
@@ -270,8 +273,6 @@ export function growRivers(g: MapGrid, h: History | null, min = MIN_LAKE): River
   }
 
   // 3. Widen what is still lost, if it is long enough to stay a river.
-  let widened = 0;
-  let tooShort = 0;
   const done = new Set<number>();
   for (const l of smallIds) {
     if (!river[l]) continue;
@@ -283,15 +284,13 @@ export function growRivers(g: MapGrid, h: History | null, min = MIN_LAKE): River
     const a = farthest(body[0], inBody, n4).far;
     const sweep = farthest(a, inBody, n4);
     const length = (sweep.dist.get(sweep.far) ?? 0) + 1;
-    if (length * MAX_RIVER_WIDTH < min) {
-      tooShort++;
-      continue;
-    }
+    if (length * MAX_RIVER_WIDTH < min) continue;
     // Widen from the end nearer the sea or a lake, so the river grows wider downstream.
     const b = sweep.far;
     const upstream = distanceToSafe(b) < distanceToSafe(a) ? a : b;
     const arc = farthest(upstream, inBody, n4).dist;
     let frontier = body.slice();
+    const widening: number[] = [];
     while (size[r] < min && frontier.length) {
       const ring = new Map<number, number>();
       for (const i of frontier) {
@@ -302,12 +301,13 @@ export function growRivers(g: MapGrid, h: History | null, min = MIN_LAKE): River
       for (const [j, at] of [...ring].sort((p, q) => q[1] - p[1] || p[0] - q[0])) {
         if (size[r] >= min) break;
         carve(j, r);
+        widening.push(j);
         inBody.add(j);
         arc.set(j, at);
         frontier.push(j);
       }
     }
-    widened++;
+    actions.push({ kind: 'widen', cells: widening });
   }
 
   /** Steps from a cell to the nearest water that stays (through anything but void), capped at 64. */
@@ -325,7 +325,40 @@ export function growRivers(g: MapGrid, h: History | null, min = MIN_LAKE): River
     return Infinity;
   }
 
-  // 4. Slivers of land cut off by the new water would be deleted on export anyway; flood them now.
+  // 4. Keep only changes that save a river. Pieces joined together that still fall short of the
+  //    generator's minimum (and reach no sea or lake) would be deleted with everything added to
+  //    them, so they go back to land as they were.
+  // Ask the generator simulation itself (it removes small islands first, which can merge lakes).
+  const sim = simulateExport(g);
+  const cw = sim.grid.width, ch = sim.grid.height;
+  const lakeOf = new Int32Array(n).fill(-1);
+  sim.removedLakes.forEach((b, k) => {
+    for (const c of b.cells) {
+      const x = c % cw;
+      lakeOf[((c - x) / cw) * w + x] = k;
+    }
+  });
+  const stays = (i: number) => lakeOf[i] < 0 || i % w >= cw || Math.floor(i / w) >= ch;
+  const lost = new Set<number>();
+  for (const id of smallIds) {
+    if (!river[id]) continue;
+    for (const c of cells[id] ?? []) if (terrain[c] === WATER && !stays(c)) lost.add(lakeOf[c]);
+  }
+  const kept: number[] = [];
+  for (const i of carved) {
+    if (stays(i)) kept.push(i);
+    else {
+      terrain[i] = LAND;
+      g.mag[i] = before.get(i)!;
+    }
+  }
+  carved = kept;
+  const keptCell = new Set(kept);
+  const count = (kind: string) => actions.filter((a) => a.kind === kind && a.cells.length && a.cells.every((c) => keptCell.has(c))).length;
+  const joints = count('joint'), bridges = count('bridge'), widened = count('widen');
+  const tooShort = lost.size;
+
+  // 5. Slivers of land cut off by the new water would be deleted on export anyway; flood them now.
   const seen = new Uint8Array(n);
   const sliver: number[] = [];
   for (let k = 0; k < carved.length; k++) {

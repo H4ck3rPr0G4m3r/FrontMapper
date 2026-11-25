@@ -181,3 +181,42 @@ describe('river tool', () => {
     expect(g.terrain[5 * 40 + 30]).toBe(WATER);
   });
 });
+
+describe('growRivers keeps only what survives export', () => {
+  it('never leaves new water that the generator deletes, with or without a sea', () => {
+    for (let s = 1; s <= 120; s++) {
+      let seed = s;
+      const rand = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+      const w = 200, h = 140;
+      const g = createGrid(w, h, LAND);
+      if (rand() < 0.5) for (let y = 0; y < h; y++) for (let x = w - 15; x < w; x++) g.terrain[y * w + x] = WATER;
+      if (rand() < 0.5) for (let y = 0; y < h; y++) for (let x = 0; x < 12; x++) g.terrain[y * w + x] = VOID;
+      const rivers = 4 + Math.floor(rand() * 20);
+      for (let i = 0; i < rivers; i++) {
+        // Broken, wandering rivers that often touch only at corners.
+        let x = Math.floor(rand() * w), y = Math.floor(rand() * h);
+        const len = 10 + Math.floor(rand() * 120);
+        for (let k = 0; k < len; k++) {
+          if (rand() > 0.12 && g.terrain[y * w + x] === LAND) g.terrain[y * w + x] = WATER;
+          if (rand() < 0.5) x = Math.min(w - 1, Math.max(0, x + (rand() < 0.5 ? -1 : 1)));
+          if (rand() < 0.5) y = Math.min(h - 1, Math.max(0, y + (rand() < 0.5 ? -1 : 1)));
+        }
+      }
+      const report = growRivers(g, null);
+      const removed = new Set<number>();
+      for (const b of simulateExport(g).removedLakes) for (const c of b.cells) removed.add(c);
+      expect(report.carved.filter((c) => removed.has(c)), `seed ${s}`).toEqual([]);
+    }
+  });
+
+  it('puts back joints between pieces that are still too short together', () => {
+    const g = land();
+    sea(g, 150);
+    for (let k = 0; k < 20; k++) set(g, 20 + k, 20 + k); // a 20 px diagonal river: joined it is still tiny
+    const before = cloneGrid(g);
+    const report = growRivers(g, null);
+    expect(diff(before, g)).toHaveLength(0);
+    expect(report.joints).toBe(0);
+    expect(report.tooShort).toBeGreaterThan(0);
+  });
+});
