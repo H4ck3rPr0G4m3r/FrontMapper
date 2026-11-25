@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'preact/hooks';
-import { ISSUE_TEXT, type Nation } from '../../core/nations';
+import { memo } from 'preact/compat';
+import { ISSUE_TEXT, type Nation, type NationIssueKind } from '../../core/nations';
 import type { EditorController } from '../../state/controller';
 import { flagCodes, flagUrl } from '../../state/flags';
 import { issuesByNation } from '../../state/nationChecks';
@@ -35,13 +36,7 @@ export function NationsTab({ controller }: { controller: EditorController }) {
           </p>
         )}
         <CrowdedFix />
-        {list.length > 0 && (
-          <ul class="nations">
-            {list.map((n) => (
-              <NationRow key={n.id} n={n} controller={controller} />
-            ))}
-          </ul>
-        )}
+        {list.length > 0 && <NationList list={list} controller={controller} />}
         {tool.value !== 'spawn' && (
           <button class="btn grp-action" onClick={() => (tool.value = 'spawn')}>
             <i aria-hidden="true" class="ph ph-flag" />
@@ -109,10 +104,55 @@ function StartingRoom({ controller }: { controller: EditorController }) {
   );
 }
 
-function NationRow({ n, controller }: { n: Nation; controller: EditorController }) {
+/** Rows rendered at first, and per "Show more"; maps from Earth data can have thousands of nations. */
+const PAGE = 100;
+
+/**
+ * The nations, a page at a time once there are many, with a search box. Rows only re-render when
+ * their own nation, issues or selection change, so typing a name doesn't redraw the whole list.
+ */
+function NationList({ list, controller }: { list: Nation[]; controller: EditorController }) {
+  const [q, setQ] = useState('');
+  const [limit, setLimit] = useState(PAGE);
+  const issues = issuesByNation.value;
+  const sel = selectedNation.value;
+  const s = q.trim().toLowerCase();
+  const matches = useMemo(() => (s ? list.filter((n) => n.name.toLowerCase().includes(s)) : list), [list, s]);
+  let shown = matches.slice(0, limit);
+  // The nation picked on the map is always in the list.
+  const picked = sel && !shown.some((n) => n.id === sel) ? list.find((n) => n.id === sel) : undefined;
+  if (picked) shown = [picked, ...shown];
+  return (
+    <>
+      {list.length > PAGE && (
+        <input class="nation-find" type="search" placeholder={`Find among ${list.length} nations`} aria-label="Find a nation" value={q} onInput={(e) => { setQ((e.currentTarget as HTMLInputElement).value); setLimit(PAGE); }} />
+      )}
+      <ul class="nations">
+        {shown.map((n) => (
+          <NationRow key={n.id} n={n} selected={n.id === sel} issueKinds={issues.get(n.id)?.map((i) => i.kind).join(' ') ?? ''} controller={controller} />
+        ))}
+      </ul>
+      {s && !matches.length && <p class="empty-note">No nation matches that.</p>}
+      {matches.length > limit && (
+        <button class="undo-accept room-more" onClick={() => setLimit(limit + PAGE * 2)}>
+          {`Show more (${matches.length - limit} not shown)`}
+        </button>
+      )}
+    </>
+  );
+}
+
+interface RowProps {
+  n: Nation;
+  selected: boolean;
+  /** The nation's issue kinds, space separated ('' for none): a string, so unchanged rows compare equal. */
+  issueKinds: string;
+  controller: EditorController;
+}
+
+const NationRow = memo(function NationRow({ n, selected, issueKinds, controller }: RowProps) {
   const [picking, setPicking] = useState(false);
-  const issues = issuesByNation.value.get(n.id);
-  const selected = selectedNation.value === n.id;
+  const issues = issueKinds ? (issueKinds.split(' ') as NationIssueKind[]).map((kind) => ({ kind })) : undefined;
   return (
     <li class={`nation${selected ? ' on' : ''}`}>
       <div class="nation-row" onClick={() => { selectedNation.value = n.id; controller.focusNation(n.id); }}>
@@ -143,7 +183,7 @@ function NationRow({ n, controller }: { n: Nation; controller: EditorController 
       {picking && <FlagPicker current={n.flag} onPick={(f) => { update(n.id, { flag: f }); setPicking(false); }} />}
     </li>
   );
-}
+});
 
 const FLAG_PAGE = 60;
 

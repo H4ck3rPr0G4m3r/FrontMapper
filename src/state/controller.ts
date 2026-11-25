@@ -610,42 +610,78 @@ export class EditorController {
     ctx.stroke();
   }
 
+  /** Nation pins as last drawn, and what they were drawn for. */
+  private nationLayer: { key: unknown[]; canvas: HTMLCanvasElement } | null = null;
+  /** Label widths by name (measureText is slow when thousands of labels redraw while panning). */
+  private labelWidths = new Map<string, number>();
+
+  /**
+   * Nation pins and labels. The overlay redraws every frame (for the cursor and the marching
+   * ants), so the pins are painted into their own layer and repainted only when the nations,
+   * their issues, the selection or the view change; other frames just copy the layer.
+   */
   private drawNations(ctx: CanvasRenderingContext2D) {
     const r = this.renderer;
     const list = nations.value;
     if (!r || !list.length) return;
     const issues = issuesByNation.value;
     const sel = selectedNation.value;
+    const { x: camX, y: camY, zoom } = r.camera;
+    const out = ctx.canvas;
+    const key = [list, issues, sel, camX, camY, zoom, out.width, out.height];
+    let layer = this.nationLayer;
+    if (!layer || layer.key.some((v, k) => v !== key[k])) {
+      const canvas = layer?.canvas ?? document.createElement('canvas');
+      canvas.width = out.width; // also clears it
+      canvas.height = out.height;
+      this.paintNations(canvas.getContext('2d')!, r, list, issues, sel, window.devicePixelRatio || 1);
+      layer = this.nationLayer = { key, canvas };
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(layer.canvas, 0, 0);
+    ctx.restore();
+  }
+
+  private paintNations(ctx: CanvasRenderingContext2D, r: Renderer, list: Nation[], issues: Map<string, unknown>, sel: string | null, dpr: number) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const labels = list.length <= 120 || r.camera.zoom >= 0.6;
     ctx.font = '600 11px ui-sans-serif, "Segoe UI", system-ui, sans-serif';
     ctx.textBaseline = 'middle';
+    // Screen position is linear in map position: s = m * zoom + origin.
+    const zoom = r.camera.zoom;
+    const o = r.mapToScreen(0, 0);
+    const w = ctx.canvas.width / dpr, h = ctx.canvas.height / dpr;
+    if (this.labelWidths.size > 20_000) this.labelWidths.clear();
     for (const n of list) {
-      const s = r.mapToScreen(n.x + 0.5, n.y + 0.5);
-      if (s.x < -200 || s.y < -20 || s.x > r.canvas.clientWidth + 20 || s.y > r.canvas.clientHeight + 20) continue;
+      const sx = (n.x + 0.5) * zoom + o.x, sy = (n.y + 0.5) * zoom + o.y;
+      if (sx < -200 || sy < -20 || sx > w + 20 || sy > h + 20) continue;
       const bad = issues.has(n.id);
       if (n.id === sel) {
         ctx.beginPath();
-        ctx.arc(s.x, s.y, 8, 0, Math.PI * 2);
+        ctx.arc(sx, sy, 8, 0, Math.PI * 2);
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
       ctx.beginPath();
-      ctx.arc(s.x, s.y, 4.5, 0, Math.PI * 2);
+      ctx.arc(sx, sy, 4.5, 0, Math.PI * 2);
       ctx.fillStyle = '#1f1f1f';
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(s.x, s.y, 3, 0, Math.PI * 2);
+      ctx.arc(sx, sy, 3, 0, Math.PI * 2);
       ctx.fillStyle = bad ? '#ff4f43' : '#ececec';
       ctx.fill();
       if (!labels) continue;
-      const w = ctx.measureText(n.name).width;
+      let tw = this.labelWidths.get(n.name);
+      if (tw === undefined) this.labelWidths.set(n.name, (tw = ctx.measureText(n.name).width));
       ctx.fillStyle = '#ececec';
-      ctx.fillRect(Math.round(s.x + 7), Math.round(s.y - 8), Math.ceil(w + 10), 16);
+      ctx.fillRect(Math.round(sx + 7), Math.round(sy - 8), Math.ceil(tw + 10), 16);
       ctx.fillStyle = '#1f1f1f';
-      ctx.fillText(n.name, Math.round(s.x + 12), Math.round(s.y));
+      ctx.fillText(n.name, Math.round(sx + 12), Math.round(sy));
     }
   }
+
 
   /** Cities picked but not placed yet: hollow pins with their names. */
   private drawCityPicks(ctx: CanvasRenderingContext2D) {

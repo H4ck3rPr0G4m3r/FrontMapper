@@ -50,6 +50,23 @@ export function nationIssues(nations: Nation[], g: MapGrid, sim: ExportSimulatio
   const names = new Map<string, number>();
   for (const n of nations) names.set(n.name.trim().toLowerCase(), (names.get(n.name.trim().toLowerCase()) ?? 0) + 1);
   const median = rooms && nations.length >= 3 ? medianRoom(nations.map((n) => rooms.get(n.id)?.room ?? 0)) : 0;
+  // Nations bucketed into minDist-sized cells: a neighbour closer than minDist is in the 3x3 around.
+  const cell = Math.max(1, minDist);
+  const cellKey = (cx: number, cy: number) => `${cx},${cy}`;
+  const buckets = new Map<string, Nation[]>();
+  for (const n of nations) {
+    const k = cellKey(Math.floor(n.x / cell), Math.floor(n.y / cell));
+    const b = buckets.get(k);
+    if (b) b.push(n);
+    else buckets.set(k, [n]);
+  }
+  const tooClose = (n: Nation) => {
+    const cx = Math.floor(n.x / cell), cy = Math.floor(n.y / cell);
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        for (const o of buckets.get(cellKey(cx + dx, cy + dy)) ?? []) if (o !== n && Math.hypot(o.x - n.x, o.y - n.y) < minDist) return true;
+    return false;
+  };
 
   for (const n of nations) {
     const add = (kind: NationIssueKind) => out.push({ nationId: n.id, kind });
@@ -66,7 +83,7 @@ export function nationIssues(nations: Nation[], g: MapGrid, sim: ExportSimulatio
         else if (r && median && r.room < BOXED_IN * median) add('boxed-in');
       }
     }
-    if (nations.some((o) => o !== n && Math.hypot(o.x - n.x, o.y - n.y) < minDist)) add('too-close');
+    if (tooClose(n)) add('too-close');
     if (flags && n.flag && !flags.has(n.flag)) add('unknown-flag');
     if ((names.get(n.name.trim().toLowerCase()) ?? 0) > 1) add('duplicate-name');
   }
