@@ -320,6 +320,7 @@ function CityNations({ btn }: { btn: Btn }) {
           {picks && (
             <p class="fe-picked" role="status">
               {`${picks.nations.length} ${picks.nations.length === 1 ? 'city' : 'cities'} picked, shown on the map.`}
+              {picks.nations.length < count && ` That is every city over ${o.minPop.toLocaleString()} on this map's land; lower "Cities over" for more.`}
               {picks.evenness !== null && picks.nations.length > 1 && (
                 <> The roomiest start has <b>{picks.evenness > 0 ? `${(1 / picks.evenness).toFixed(1)}×` : 'far more than'}</b> the land of the tightest.</>
               )}

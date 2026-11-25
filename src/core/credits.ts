@@ -1,5 +1,5 @@
 /** Open data sources a map can be built from. Satellite imagery is display-only and never listed. */
-export type SourceId = 'osm' | 'terrain-tiles' | 'geoboundaries' | 'natural-earth';
+export type SourceId = 'osm' | 'terrain-tiles' | 'geoboundaries' | 'natural-earth' | 'geonames';
 
 /**
  * Attribution lines in the shape of OpenFront's CREDITS.md "Map Data" section.
@@ -38,6 +38,15 @@ export function creditsSnippet(ids: SourceId[], displayName: string): string {
       `Country and province borders from [geoBoundaries](https://www.geoboundaries.org) (CGAZ), used for the ${displayName} map.  `,
       'Licensed under CC BY 4.0 / ODbL  ',
       'Runfola, D. et al. (2020) geoBoundaries: A global database of political administrative boundaries. PLoS ONE 15(4): e0231866. https://doi.org/10.1371/journal.pone.0231866',
+    );
+  }
+  if (ids.includes('geonames')) {
+    parts.push(
+      '',
+      '### GeoNames',
+      '',
+      `City names, positions and populations from [GeoNames](https://www.geonames.org), used for the ${displayName} map.  `,
+      'Licensed under CC BY 4.0',
     );
   }
   if (ids.includes('natural-earth')) {

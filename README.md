@@ -68,7 +68,8 @@ A tile that fails to download after 3 retries stops the conversion with a Retry.
 | Coastlines, lakes | © OpenStreetMap contributors, via OpenFreeMap / OpenMapTiles | ODbL |
 | Elevation | AWS Terrain Tiles (Mapzen Terrarium) | see the [attribution list](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) |
 | Borders, provinces | [geoBoundaries](https://www.geoboundaries.org) CGAZ (Runfola et al. 2020) | CC BY 4.0 / ODbL |
-| Country ids and names, some territories, cities | Natural Earth 10m | public domain |
+| Country ids and names, some territories | Natural Earth 10m | public domain |
+| Cities (1000+ people) | [GeoNames](https://www.geonames.org) cities1000 | CC BY 4.0 |
 | Satellite imagery (display only) | Esri, Maxar, Earthstar Geographics | display in the picker only |
 | Flags, `info.json` schema | OpenFrontIO | AGPL-3.0 |
 

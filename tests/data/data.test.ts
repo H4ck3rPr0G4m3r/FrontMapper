@@ -52,12 +52,28 @@ describe('generated data', () => {
   });
 
   it('has Jakarta as a capital with its population', () => {
-    const cities: [string, number, number, number, string, string, string][] = read('cities.json');
+    const cities: [string, number, number, number, string, string, string][] = read('cities/id.json');
     const jakarta = cities.find((c) => c[0] === 'Jakarta');
     expect(jakarta).toBeTruthy();
     expect(jakarta![5]).toBe('capital');
     expect(jakarta![3]).toBeGreaterThan(8_000_000);
     expect(jakarta![4]).toBe('id');
+  });
+
+  it('has small towns too, without city districts (Hungary)', () => {
+    const hu: [string, number, number, number, string, string, string][] = read('cities/hu.json');
+    expect(hu.length).toBeGreaterThan(500);
+    expect(hu.map((c) => c[0])).toEqual(expect.arrayContaining(['Budapest', 'Debrecen', 'Szeged', 'Pécs', 'Győr', 'Hódmezővásárhely']));
+    expect(hu.map((c) => c[0])).not.toContain('Buda'); // a district of Budapest
+    const index = read('cities-index.json');
+    expect(index.hu[4]).toBe(hu.length);
+  });
+
+  it('has no broken characters in any name', () => {
+    const files = ['provinces-index.json', ...readdirSync(join(DATA, 'provinces')).map((f) => `provinces/${f}`), ...readdirSync(join(DATA, 'cities')).map((f) => `cities/${f}`)];
+    for (const f of files) expect(readFileSync(join(DATA, f), 'utf8').includes('\ufffd'), f).toBe(false);
+    const hun = read('provinces-index.json').filter((r: string[]) => r[2] === 'HUN').map((r: string[]) => r[1]);
+    expect(hun).toEqual(expect.arrayContaining(['Jász-Nagykun-Szolnok', 'Bács-Kiskun', 'Győr-Moson-Sopron']));
   });
 
   it('lists OpenFront flags including subdivisions', () => {
