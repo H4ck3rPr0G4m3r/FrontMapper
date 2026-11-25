@@ -113,5 +113,5 @@ describe('simulateExport', () => {
     const sim = simulateExport(g);
     expect(sim.removedIslands.length).toBeGreaterThan(0);
     console.log('10000x5000 simulateExport ms', Math.round(performance.now() - t));
-  });
+  }, 120_000); // a benchmark: CI runners take 5 s or more, past vitest's 5 s default
 });
